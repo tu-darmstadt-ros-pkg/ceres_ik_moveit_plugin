@@ -58,27 +58,25 @@ struct CartesianError {
     Transform<T> target_pose_t(target_pose_);
     Vector3T<T> translation_diff = target_pose_t.translation - pose.translation;
 
-    QuaternionT<T> rotation_diff = pose.rotation.inverse() * target_pose_t.rotation;
+    QuaternionT<T> rotation_diff = QuaternionT<T>(pose.rotation.toRotationMatrix().transpose() * target_pose_t.rotation);
     Vector3T<T> ypr = rotation_diff.toRotationMatrix().eulerAngles(2, 1, 0);
 
     for (unsigned int i = 0; i < 3; i++) {
-      residuals[i] = std::pow(translation_diff(i), 2);
-      residuals[i+3] = std::pow(ypr[i], 2);
+      residuals[i] = translation_diff(i);
+      residuals[i+3] = ypr[i];
     }
+
+
 
     return true;
   }
 
   static ceres::CostFunction* Create(const std::vector<Link>& chain, const Transform<double>& target_pose, int num_actuated_joints)
   {
-    ceres::DynamicAutoDiffCostFunction<CartesianError> * cost_function =
-        new ceres::DynamicAutoDiffCostFunction<CartesianError>(
-          new CartesianError(chain, target_pose));
-
-    cost_function->AddParameterBlock(num_actuated_joints);
-    cost_function->SetNumResiduals(6);
-
-    return static_cast<ceres::CostFunction*>(cost_function);
+    ceres::CostFunction * cost_function =
+        new ceres::AutoDiffCostFunction<CartesianError, ceres::DYNAMIC, 6>(
+          new CartesianError(chain, target_pose), num_actuated_joints);
+    return cost_function;
   }
 
   std::vector<Link> chain_;

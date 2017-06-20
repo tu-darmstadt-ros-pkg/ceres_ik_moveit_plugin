@@ -88,6 +88,7 @@ set(HEADERS
 set(SOURCES
   src/ceres_ik_moveit_plugin.cpp
   src/urdf_loader.cpp
+  src/transforms.cpp
 )
 
 ################################################

@@ -10,7 +10,7 @@
 #include <moveit/rdf_loader/rdf_loader.h>
 
 // register KDLKinematics as a KinematicsBase implementation
-//CLASS_LOADER_REGISTER_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::KinematicsBase)
+CLASS_LOADER_REGISTER_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::KinematicsBase)
 
 namespace ceres_ik_moveit_plugin {
 
@@ -75,6 +75,14 @@ namespace ceres_ik_moveit_plugin {
       }
     }
 
+    for (unsigned int i = 0; i < chain_.size(); i++) {
+      joint_names_.push_back(chain_[i].getJoint()->getName());
+    }
+
+    for (unsigned int i = 0; i < chain_.size(); i++) {
+      link_names_.push_back(chain_[i].getName());
+    }
+
     active_ = true;
     return true;
   }
@@ -83,9 +91,15 @@ namespace ceres_ik_moveit_plugin {
                                          const std::vector<double>& joint_angles,
                                          std::vector<geometry_msgs::Pose>& poses) const
   {
+    if (!active_) {
+      ROS_ERROR_NAMED("CeresIK", "FK failed. Plugin not active");
+      return false;
+    }
+
     if (joint_angles.size() != num_actuated_joints_) {
       ROS_ERROR_STREAM_NAMED("CeresIK", "Can't compute FK. joint_angles size (" << joint_angles.size()
                              << ") doesn't match number of actuated joints (" << num_actuated_joints_ << ").");
+      return false;
     }
     Transform<double> pose;
     poses.resize(link_names.size());
@@ -106,6 +120,8 @@ namespace ceres_ik_moveit_plugin {
         }
       }
     }
+
+    return true;
   }
 
 
@@ -118,6 +134,18 @@ namespace ceres_ik_moveit_plugin {
                                              const std::vector<double> &consistency_limits,
                                              const kinematics::KinematicsQueryOptions &options) const
   {
+    if (!active_) {
+      ROS_ERROR_NAMED("CeresIK", "IK failed. Plugin not active");
+      error_code.val = error_code.NO_IK_SOLUTION;
+    }
+
+    if (ik_seed_state.size() != num_actuated_joints_) {
+      ROS_ERROR_STREAM_NAMED("CeresIK", "Can't compute IK. ik_seed_state size (" << ik_seed_state.size()
+                             << ") doesn't match number of actuated joints (" << num_actuated_joints_ << ").");
+      error_code.val = error_code.NO_IK_SOLUTION;
+      return false;
+    }
+
     double joint_state[num_actuated_joints_];
     for (unsigned int i = 0; i < num_actuated_joints_; i++) {
       joint_state[i] = ik_seed_state[i];
@@ -128,8 +156,18 @@ namespace ceres_ik_moveit_plugin {
     ceres::Problem problem;
     ceres::CostFunction* cost_function = CartesianError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_);
     problem.AddResidualBlock(cost_function, NULL, joint_state);
+    int joint_state_idx = 0;
+    for (unsigned int i = 0; i < chain_.size(); i++) {
+      if (chain_[i].getJoint()->isActuated()) {
+        problem.SetParameterLowerBound(joint_state, joint_state_idx, chain_[i].getJoint()->getLowerLimit());
+        problem.SetParameterLowerBound(joint_state, joint_state_idx, chain_[i].getJoint()->getUpperLimit());
+        joint_state_idx++;
+      }
+    }
 
     ceres::Solver::Options ceres_options;
+    ceres_options.max_solver_time_in_seconds = timeout;
+    ceres_options.linear_solver_type = ceres::DENSE_QR;
     //options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
@@ -140,8 +178,32 @@ namespace ceres_ik_moveit_plugin {
       solution[i] = joint_state[i];
     }
 
-    return true;
+    if (!solution_callback.empty()) {
+      solution_callback(ik_pose, solution, error_code);
+      if(error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+      {
+        ROS_DEBUG_STREAM_NAMED("CeresIK","Solution passes callback");
+        return true;
+      }
+      else
+      {
+        ROS_WARN_STREAM_NAMED("CeresIK","Solution Callback: Solution has error code " << error_code);
+        return false;
+      }
+    } else {
+      // no callback provided
+      return true;
+    }
   }
+
+  const std::vector<std::string>& CeresIkMoveitPlugin::getJointNames() const {
+    return joint_names_;
+  }
+
+  const std::vector<std::string>& CeresIkMoveitPlugin::getLinkNames() const {
+    return link_names_;
+  }
+
 
   bool CeresIkMoveitPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose,
                                             const std::vector<double> &ik_seed_state,

@@ -63,6 +63,17 @@ public:
                    const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
                    const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
 
+  /**
+   * @brief  Return all the joint names in the order they are used internally
+   */
+  virtual const std::vector<std::string>& getJointNames() const;
+
+  /**
+   * @brief  Return all the link names in the order they are represented internally
+   */
+  virtual const std::vector<std::string>& getLinkNames() const;
+
+
 protected:
   /**
    * @brief Given a desired pose of the end-effector, search for the joint angles required to reach it.
@@ -92,6 +103,10 @@ private:
 
   robot_model::RobotModelPtr robot_model_;
   //robot_state::RobotStatePtr state_;
+
+  std::vector<std::string> joint_names_;
+  std::vector<std::string> link_names_;
+
 
   bool active_;
 };
