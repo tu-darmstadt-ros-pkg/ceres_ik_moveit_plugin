@@ -85,17 +85,18 @@ namespace ceres_ik_moveit_plugin {
 
     active_ = true;
 
-    Transform<double> pose1(Eigen::Quaterniond::Identity(), Eigen::Vector3d(1, 2, 2));
-    Transform<double> pose2(Eigen::Quaterniond::Identity(), Eigen::Vector3d(5, 3, 2));
-    Transform<double> pose3 = pose1 * pose2;
-    Transform<double> pose4;
-    convertTransform(pose3, pose4);
+//    Transform<double> pose1(Eigen::Quaterniond::Identity(), Eigen::Vector3d(1, 2, 2));
+//    Transform<double> pose2(Eigen::Quaterniond::Identity(), Eigen::Vector3d(5, 3, 2));
+//    Transform<double> pose3 = pose1 * pose2;
+//    Transform<double> pose4;
+//    convertTransform<double>(pose3, pose4);
 
-    ROS_INFO_STREAM("pose4: " << pose4.toString());
+//    ROS_INFO_STREAM("pose3: " << pose3.toString());
+//    ROS_INFO_STREAM("pose4: " << pose4.toString());
 
 
     std::vector<geometry_msgs::Pose> pose;
-    std::vector<double> angles(num_actuated_joints_, 0);
+    std::vector<double> angles = {0.0, 1.55, 2.94, 1.61, 0.0};
     std::vector<std::string> names = {"arm_link_0", "arm_link_1", "arm_link_2", "arm_link_3", "arm_link_4"};
     getPositionFK(names, angles, pose);
     for (unsigned int i = 0; i < pose.size(); i++) {
@@ -125,7 +126,6 @@ namespace ceres_ik_moveit_plugin {
 
     int current_angle_idx = 0;
     for (unsigned int i = 0; i < chain_.size(); i++) {
-      ROS_INFO_STREAM("Current pose: " << pose.toString());
       double q;
       if (chain_[i].getJoint()->isActuated()) {
         q = joint_angles[current_angle_idx];

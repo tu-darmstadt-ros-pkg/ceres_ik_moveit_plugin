@@ -11,7 +11,7 @@ template <typename T> void convertTransform(const Transform<double>& t1, Transfo
   t2.rotation.w() = T(t1.rotation.w());
 
   for (unsigned int i = 0; i < 3; i++) {
-    t2.translation(0) = T(t1.translation(i));
+    t2.translation(i) = T(t1.translation(i));
   }
 }
 
@@ -22,12 +22,8 @@ template <> void convertTransform(const Transform<double>& t1, Transform<double>
   t2.rotation.w() = t1.rotation.w();
 
   for (unsigned int i = 0; i < 3; i++) {
-    t2.translation(0) = t1.translation(i);
+    t2.translation(i) = t1.translation(i);
   }
-}
-
-template <typename T> Transform<T> operator *(const Transform<T>& lhs, const Transform<T>& rhs) {
-  return Transform<T>(lhs.rotation * rhs.rotation, lhs.translation + (lhs.rotation * rhs.translation));
 }
 
 geometry_msgs::Pose transformToMsg(const Transform<double>& transform) {
@@ -49,26 +45,10 @@ Transform<double> msgToTransform(const geometry_msgs::Pose& msg) {
                    Eigen::Vector3d(msg.position.x, msg.position.y, msg.position.z));
 }
 
-template <typename T> Transform<T> Joint::pose(T q) const {
-  if (const FixedJoint* joint = dynamic_cast<const FixedJoint*>(this)) {
-    joint->pose(q);
-  }
-  else if (const RevoluteJoint* joint = dynamic_cast<const RevoluteJoint*>(this)) {
-    joint->pose(q);
-  }
-  else {
-    std::cerr << "Dynamic cast failed!" << std::endl;
-  }
-}
-
 // FixedJoint
 
 FixedJoint::FixedJoint(std::string name, Eigen::Vector3d origin)
   : Joint(name, origin) {}
-
-template<typename T> Transform<T> FixedJoint::pose(T q) const {
-  return Transform<T>();
-}
 
 bool FixedJoint::isActuated() const {
   return false;
@@ -79,15 +59,9 @@ bool FixedJoint::isActuated() const {
 RevoluteJoint::RevoluteJoint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit)
   : Joint(name, origin, axis, upper_limit, lower_limit) {}
 
-Transform<double> RevoluteJoint::pose(double q) const {
-  return Transform<double>(Eigen::Quaterniond(Eigen::AngleAxisd(q, axis_)), origin_);
-}
-
-template<typename T> Transform<T> RevoluteJoint::pose(T q) const {
-  Vector3T<T> axis_t = vectorDtoT<T>(axis_);
-  Vector3T<T> origin_t = vectorDtoT<T>(origin_);
-  return Transform<T>(QuaternionT<T>(Eigen::AngleAxis<T>(q, axis_t)), origin_t);
-}
+//Transform<double> RevoluteJoint::pose(double q) const {
+//  return Transform<double>(Eigen::Quaterniond(Eigen::AngleAxisd(q, axis_)), origin_);
+//}
 
 bool RevoluteJoint::isActuated() const {
   return true;
@@ -99,14 +73,10 @@ Link::Link(std::string name, const Transform<double>& tip_transform, boost::shar
   : name_(name), tip_transform_(joint->pose<double>(0).inverse() * tip_transform), joint_(joint) {}
 
 //Transform<double> Link::pose(double q) const {
-//  return joint_->pose(q) * tip_transform_;
+//  return joint_->pose<double>(q) * tip_transform_;
 //}
 
-template<typename T> Transform<T> Link::pose(T q) const {
-  Transform<T> tip_transform_t;
-  convertTransform(tip_transform_, tip_transform_t);
-  return joint_->pose(q) * tip_transform_t;
-}
+
 
 boost::shared_ptr<Joint> Link::getJoint() const {
   return joint_;
