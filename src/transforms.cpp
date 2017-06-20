@@ -1,30 +1,7 @@
 #include <ceres_ik_moveit_plugin/transforms.h>
 
 namespace ceres_ik_moveit_plugin {
-
 // Transform
-
-template <typename T> void convertTransform(const Transform<double>& t1, Transform<T>& t2) {
-  t2.rotation.x() = T(t1.rotation.x());
-  t2.rotation.y() = T(t1.rotation.y());
-  t2.rotation.z() = T(t1.rotation.z());
-  t2.rotation.w() = T(t1.rotation.w());
-
-  for (unsigned int i = 0; i < 3; i++) {
-    t2.translation(i) = T(t1.translation(i));
-  }
-}
-
-template <> void convertTransform(const Transform<double>& t1, Transform<double>& t2) {
-  t2.rotation.x() = t1.rotation.x();
-  t2.rotation.y() = t1.rotation.y();
-  t2.rotation.z() = t1.rotation.z();
-  t2.rotation.w() = t1.rotation.w();
-
-  for (unsigned int i = 0; i < 3; i++) {
-    t2.translation(i) = t1.translation(i);
-  }
-}
 
 geometry_msgs::Pose transformToMsg(const Transform<double>& transform) {
   geometry_msgs::Pose msg;

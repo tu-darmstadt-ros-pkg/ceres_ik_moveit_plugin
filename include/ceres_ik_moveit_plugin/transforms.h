@@ -46,6 +46,17 @@ template <typename T> Transform<T> operator *(const Transform<T>& lhs, const Tra
   return Transform<T>(lhs.rotation * rhs.rotation, lhs.translation + (lhs.rotation * rhs.translation));
 }
 
+template <typename T> void convertTransform(const Transform<double>& t1, Transform<T>& t2) {
+  t2.rotation.x() = T(t1.rotation.x());
+  t2.rotation.y() = T(t1.rotation.y());
+  t2.rotation.z() = T(t1.rotation.z());
+  t2.rotation.w() = T(t1.rotation.w());
+
+  for (unsigned int i = 0; i < 3; i++) {
+    t2.translation(i) = T(t1.translation(i));
+  }
+}
+
 class Joint {
 public:
   Joint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit) :
@@ -90,42 +101,50 @@ protected:
 class FixedJoint : public Joint {
 public:
   FixedJoint(std::string name, Eigen::Vector3d origin);
+
   template<typename T> Transform<T> pose(T q) const {
     return Transform<T>();
-  }  bool isActuated() const;
+  }
+
+  bool isActuated() const;
 };
 
 class RevoluteJoint : public Joint {
 public:
   RevoluteJoint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit);
+
   template<typename T> Transform<T> pose(T q) const {
     Vector3T<T> axis_t = vectorDtoT<T>(axis_);
     Vector3T<T> origin_t = vectorDtoT<T>(origin_);
     return Transform<T>(QuaternionT<T>(Eigen::AngleAxis<T>(q, axis_t)), origin_t);
   }
+
   bool isActuated() const;
 };
 
 template <typename T> Transform<T> Joint::pose(T q) const {
   if (const FixedJoint* joint = dynamic_cast<const FixedJoint*>(this)) {
-    joint->pose(q);
+    return joint->pose(q);
   }
   else if (const RevoluteJoint* joint = dynamic_cast<const RevoluteJoint*>(this)) {
-    joint->pose(q);
+    return joint->pose(q);
   }
   else {
     std::cerr << "Dynamic cast failed!" << std::endl;
+    return Transform<T>();
   }
 }
 
 class Link {
 public:
   Link(std::string name, const Transform<double>& tip_transform, boost::shared_ptr<Joint> joint);
+
   template<typename T> Transform<T> pose(T q) const {
     Transform<T> tip_transform_t;
     convertTransform(tip_transform_, tip_transform_t);
     return joint_->pose(q) * tip_transform_t;
   }
+
   //Transform<double> pose(double q) const;
   boost::shared_ptr<Joint> getJoint() const;
   std::string getName() const;
@@ -139,9 +158,5 @@ private:
 
 geometry_msgs::Pose transformToMsg(const Transform<double>& transform);
 Transform<double> msgToTransform(const geometry_msgs::Pose& msg);
-
-template <typename T> void convertTransform(const Transform<double>& t1, Transform<T>& t2);
-template <> void convertTransform(const Transform<double>& t1, Transform<double>& t2);
-
 }
 #endif

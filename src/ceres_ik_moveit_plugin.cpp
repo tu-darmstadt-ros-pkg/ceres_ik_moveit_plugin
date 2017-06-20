@@ -95,14 +95,14 @@ namespace ceres_ik_moveit_plugin {
 //    ROS_INFO_STREAM("pose4: " << pose4.toString());
 
 
-    std::vector<geometry_msgs::Pose> pose;
-    std::vector<double> angles = {0.0, 1.55, 2.94, 1.61, 0.0};
-    std::vector<std::string> names = {"arm_link_0", "arm_link_1", "arm_link_2", "arm_link_3", "arm_link_4"};
-    getPositionFK(names, angles, pose);
-    for (unsigned int i = 0; i < pose.size(); i++) {
-      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
-      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
-    }
+//    std::vector<geometry_msgs::Pose> pose;
+//    std::vector<double> angles = {0.0, 1.55, 2.94, 1.61, 0.0};
+//    std::vector<std::string> names = {"arm_link_0", "arm_link_1", "arm_link_2", "arm_link_3", "arm_link_4"};
+//    getPositionFK(names, angles, pose);
+//    for (unsigned int i = 0; i < pose.size(); i++) {
+//      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
+//      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
+//    }
 
     return true;
   }
@@ -192,9 +192,16 @@ namespace ceres_ik_moveit_plugin {
     std::cout << summary.BriefReport() << "\n";
 
     solution.resize(num_actuated_joints_);
+    std::stringstream ss;
+    ss << "[";
     for (unsigned int i = 0; i < num_actuated_joints_; i++) {
       solution[i] = joint_state[i];
+      ss << solution[i] << ", ";
     }
+    ss << "]";
+    ROS_INFO_STREAM("Translation: " << ik_pose.position.x << ", " << ik_pose.position.y << ", " << ik_pose.position.z);
+    ROS_INFO_STREAM("Rotation: " << ik_pose.orientation.w << ", " << ik_pose.orientation.x << ", " << ik_pose.orientation.y << ", " << ik_pose.orientation.z);
+    ROS_INFO_STREAM("Solution: " << ss.str());
 
     if (!solution_callback.empty()) {
       solution_callback(ik_pose, solution, error_code);

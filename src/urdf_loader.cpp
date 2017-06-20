@@ -27,11 +27,12 @@ std::vector<Link> UrdfLoader::buildChain(boost::shared_ptr<const urdf::Link> roo
 
 bool UrdfLoader::addToChain(boost::shared_ptr<const urdf::Link> root, std::vector<Link>& chain) {
   boost::shared_ptr<Joint> joint = toJoint(root->parent_joint);
-  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis());
+  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis() << ", Pose(0): " << joint->pose(0.0).toString());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
   ROS_INFO_STREAM("Adding link " << root->name);
   ROS_INFO_STREAM("Tip transform: " << link.getTipTransform().toString());
   chain.push_back(link);
+  return true;
 }
 
 boost::shared_ptr<Joint> UrdfLoader::toJoint(boost::shared_ptr<const urdf::Joint> urdf_joint) {
