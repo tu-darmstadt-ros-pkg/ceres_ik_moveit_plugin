@@ -21,31 +21,27 @@ template<typename T> struct Transform {
   QuaternionT<T> rotation;
   Vector3T<T> translation;
 
-  Transform() {}
+  Transform()
+    : rotation(QuaternionT<T>(T(1.0), T(0.0), T(0.0), T(0.0))), translation(Vector3T<T>(T(0.0), T(0.0), T(0.0))) {}
 
   Transform(const QuaternionT<T>& _rotation, const Vector3T<T>& _translation) {
     rotation = _rotation;
     translation = _translation;
   }
-  Transform(const Transform<double>& trans_d) {
-    rotation.x() = T(trans_d.rotation.x());
-    rotation.y() = T(trans_d.rotation.y());
-    rotation.z() = T(trans_d.rotation.z());
-    rotation.w() = T(trans_d.rotation.w());
-
-    for (unsigned int i = 0; i < 3; i++) {
-      translation(0) = T(trans_d.translation(i));
-    }
-  }
-
-  Transform operator *(const Transform<T>& lhs) const {
-    return Transform(lhs.rotation * rotation, lhs.rotation * translation + lhs.translation);
-  }
 
   Transform inverse() {
     return Transform(rotation.inverse(), -1 * rotation.inverse() * translation);
   }
+
+  std::string toString() {
+    std::stringstream ss;
+    ss << "[" << translation(0) << ", " << translation(1) << ", " << translation(2) << "; "
+       << rotation.w() << ", " << rotation.x() << ", " << rotation.y() << ", " << rotation.z() << "]";
+    return ss.str();
+  }
 };
+
+template <typename T> Transform<T> operator *(const Transform<T>& lhs, const Transform<T>& rhs);
 
 class Joint {
 public:
@@ -71,6 +67,14 @@ public:
     return name_;
   }
 
+  Eigen::Vector3d getOrigin() const {
+    return origin_;
+  }
+
+  Eigen::Vector3d getAxis() const {
+    return axis_;
+  }
+
 protected:
   std::string name_;
   Eigen::Vector3d origin_;
@@ -82,62 +86,27 @@ protected:
 
 class FixedJoint : public Joint {
 public:
-  FixedJoint(std::string name, Eigen::Vector3d origin)
-    : Joint(name, origin) {}
-
-  template<typename T> Transform<T> pose(T q) const {
-    return Transform<T>();
-  }
-
-  bool isActuated() const {
-    return false;
-  }
+  FixedJoint(std::string name, Eigen::Vector3d origin);
+  template<typename T> Transform<T> pose(T q) const;
+  bool isActuated() const;
 };
 
 class RevoluteJoint : public Joint {
 public:
-  RevoluteJoint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit)
-    : Joint(name, origin, axis, upper_limit, lower_limit) {}
-
-  template<typename T> Transform<T> pose(T q) const {
-    Vector3T<T> axis_t = vectorDtoT<T>(axis_);
-    Vector3T<T> origin_t = vectorDtoT<T>(origin_);
-    return Transform<T>(QuaternionT<T>(Eigen::AngleAxis<T>(q, axis_t)), origin_t);
-  }
-
-  bool isActuated() const {
-    return true;
-  }
+  RevoluteJoint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit);
+  Transform<double> pose(double q) const;
+  template<typename T> Transform<T> pose(T q) const;
+  bool isActuated() const;
 };
-
-template <typename T> Transform<T> Joint::pose(T q) const {
-  if (const FixedJoint* joint = dynamic_cast<const FixedJoint*>(this)) {
-    joint->pose(q);
-  }
-  else if (const RevoluteJoint* joint = dynamic_cast<const RevoluteJoint*>(this)) {
-    joint->pose(q);
-  }
-  else {
-    std::cerr << "Dynamic cast failed!" << std::endl;
-  }
-}
 
 class Link {
 public:
-  Link(std::string name, const Transform<double>& tip_transform, boost::shared_ptr<Joint> joint)
-    : name_(name), tip_transform_(joint->pose<double>(0).inverse() * tip_transform), joint_(joint) {}
-
-  template<typename T> Transform<T> pose(T q) const {
-    return joint_->pose(q) * Transform<T>(tip_transform_);
-  }
-
-  boost::shared_ptr<Joint> getJoint() const {
-    return joint_;
-  }
-
-  std::string getName() const {
-    return name_;
-  }
+  Link(std::string name, const Transform<double>& tip_transform, boost::shared_ptr<Joint> joint);
+  //Transform<double> pose(double q) const;
+  template<typename T> Transform<T> pose(T q) const;
+  boost::shared_ptr<Joint> getJoint() const;
+  std::string getName() const;
+  Transform<double> getTipTransform() const;
 
 private:
   std::string name_;
@@ -146,7 +115,10 @@ private:
 };
 
 geometry_msgs::Pose transformToMsg(const Transform<double>& transform);
-
 Transform<double> msgToTransform(const geometry_msgs::Pose& msg);
+
+template <typename T> void convertTransform(const Transform<double>& t1, Transform<T>& t2);
+template <> void convertTransform(const Transform<double>& t1, Transform<double>& t2);
+
 }
 #endif

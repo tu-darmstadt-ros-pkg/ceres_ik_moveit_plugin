@@ -27,7 +27,10 @@ std::vector<Link> UrdfLoader::buildChain(boost::shared_ptr<const urdf::Link> roo
 
 bool UrdfLoader::addToChain(boost::shared_ptr<const urdf::Link> root, std::vector<Link>& chain) {
   boost::shared_ptr<Joint> joint = toJoint(root->parent_joint);
+  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
+  ROS_INFO_STREAM("Adding link " << root->name);
+  ROS_INFO_STREAM("Tip transform: " << link.getTipTransform().toString());
   chain.push_back(link);
 }
 
@@ -37,11 +40,14 @@ boost::shared_ptr<Joint> UrdfLoader::toJoint(boost::shared_ptr<const urdf::Joint
   switch (urdf_joint->type) {
     case urdf::Joint::FIXED:
       joint.reset(new FixedJoint(urdf_joint->name, parent_transform.translation));
+      ROS_INFO_STREAM("Adding fixed joint " << joint->getName());
       break;
     case urdf::Joint::REVOLUTE: {
       Eigen::Vector3d axis = toTranslation(urdf_joint->axis);
       joint.reset(new RevoluteJoint(urdf_joint->name, parent_transform.translation, parent_transform.rotation * axis,
                                     urdf_joint->limits->upper, urdf_joint->limits->lower));
+      ROS_INFO_STREAM("Adding revolute joint " << joint->getName() << " with limits " << joint->getLowerLimit() << " to " << joint->getUpperLimit());
+      break;
     }
 
       break;

@@ -40,14 +40,14 @@ struct CartesianError {
     : chain_(chain), target_pose_(target_pose) {}
 
   template<typename T>
-  bool operator()(const T* const joint_angles, T* residuals) const {
+  bool operator()(T const* const* joint_angles, T* residuals) const {
     int current_joint_idx = 0;
 
     Transform<T> pose;
     for (unsigned int i = 0; i < chain_.size(); i++) {
       T q;
       if (chain_[i].getJoint()->isActuated()) {
-        q = joint_angles[current_joint_idx];
+        q = joint_angles[0][current_joint_idx];
         current_joint_idx++;
       } else {
         q = T(0.0);
@@ -55,7 +55,8 @@ struct CartesianError {
       pose = pose * chain_[i].pose<T>(q);
     }
 
-    Transform<T> target_pose_t(target_pose_);
+    Transform<T> target_pose_t;
+    convertTransform(target_pose_, target_pose_t);
     Vector3T<T> translation_diff = target_pose_t.translation - pose.translation;
 
     QuaternionT<T> rotation_diff = QuaternionT<T>(pose.rotation.toRotationMatrix().transpose() * target_pose_t.rotation);
@@ -66,17 +67,19 @@ struct CartesianError {
       residuals[i+3] = ypr[i];
     }
 
-
-
     return true;
   }
 
   static ceres::CostFunction* Create(const std::vector<Link>& chain, const Transform<double>& target_pose, int num_actuated_joints)
   {
-    ceres::CostFunction * cost_function =
-        new ceres::AutoDiffCostFunction<CartesianError, ceres::DYNAMIC, 6>(
-          new CartesianError(chain, target_pose), num_actuated_joints);
-    return cost_function;
+    ceres::DynamicAutoDiffCostFunction<CartesianError> * cost_function =
+        new ceres::DynamicAutoDiffCostFunction<CartesianError>(
+          new CartesianError(chain, target_pose));
+
+    cost_function->AddParameterBlock(num_actuated_joints);
+    cost_function->SetNumResiduals(6);
+
+    return static_cast<ceres::CostFunction*> (cost_function);
   }
 
   std::vector<Link> chain_;

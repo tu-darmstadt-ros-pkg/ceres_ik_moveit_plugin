@@ -84,6 +84,25 @@ namespace ceres_ik_moveit_plugin {
     }
 
     active_ = true;
+
+    Transform<double> pose1(Eigen::Quaterniond::Identity(), Eigen::Vector3d(1, 2, 2));
+    Transform<double> pose2(Eigen::Quaterniond::Identity(), Eigen::Vector3d(5, 3, 2));
+    Transform<double> pose3 = pose1 * pose2;
+    Transform<double> pose4;
+    convertTransform(pose3, pose4);
+
+    ROS_INFO_STREAM("pose4: " << pose4.toString());
+
+
+    std::vector<geometry_msgs::Pose> pose;
+    std::vector<double> angles(num_actuated_joints_, 0);
+    std::vector<std::string> names = {"arm_link_0", "arm_link_1", "arm_link_2", "arm_link_3", "arm_link_4"};
+    getPositionFK(names, angles, pose);
+    for (unsigned int i = 0; i < pose.size(); i++) {
+      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
+      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
+    }
+
     return true;
   }
 
@@ -106,6 +125,7 @@ namespace ceres_ik_moveit_plugin {
 
     int current_angle_idx = 0;
     for (unsigned int i = 0; i < chain_.size(); i++) {
+      ROS_INFO_STREAM("Current pose: " << pose.toString());
       double q;
       if (chain_[i].getJoint()->isActuated()) {
         q = joint_angles[current_angle_idx];
@@ -151,8 +171,6 @@ namespace ceres_ik_moveit_plugin {
       joint_state[i] = ik_seed_state[i];
     }
 
-    //todo check ik seed state size
-
     ceres::Problem problem;
     ceres::CostFunction* cost_function = CartesianError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_);
     problem.AddResidualBlock(cost_function, NULL, joint_state);
@@ -168,7 +186,7 @@ namespace ceres_ik_moveit_plugin {
     ceres::Solver::Options ceres_options;
     ceres_options.max_solver_time_in_seconds = timeout;
     ceres_options.linear_solver_type = ceres::DENSE_QR;
-    //options.minimizer_progress_to_stdout = true;
+    ceres_options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
     std::cout << summary.BriefReport() << "\n";
