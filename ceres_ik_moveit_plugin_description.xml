@@ -1,0 +1,7 @@
+<library path="lib/libceres_ik_moveit_plugin">
+  <class name="ceres_ik_moveit_plugin/CeresIkMoveitPlugin" type="ceres_ik_moveit_plugin::CeresIkMoveitPlugin" base_class_type="kinematics::KinematicsBase">
+    <description>
+      Moveit kinematics plugin using Ceres.
+    </description>
+  </class>
+</library>
