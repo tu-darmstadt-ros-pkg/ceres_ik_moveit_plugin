@@ -26,8 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef CARTESIAN_ERROR_H
-#define CARTESIAN_ERROR_H
+#ifndef POSE_ERROR_H
+#define POSE_ERROR_H
 
 #include <ceres/ceres.h>
 
@@ -35,9 +35,9 @@
 
 namespace ceres_ik_moveit_plugin {
 
-struct CartesianError {
-  CartesianError(const std::vector<Link>& chain, const Transform<double>& ik_pose)
-    : chain_(chain), ik_pose_(ik_pose) {}
+struct PoseError {
+  PoseError(const std::vector<Link>& chain, const Transform<double>& ik_pose, double orientation_weight = 0.5)
+    : chain_(chain), ik_pose_(ik_pose), orientation_weight_(orientation_weight) {}
 
   template<typename T>
   bool operator()(T const* const* joint_angles, T* residuals) const {
@@ -55,41 +55,36 @@ struct CartesianError {
       current_pose = current_pose * chain_[i].pose<T>(q);
     }
 
+    // Translation
     Transform<T> ik_pose_t;
     convertTransform(ik_pose_, ik_pose_t);
-    Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
-    //QuaternionT<T> rotation_diff = QuaternionT<T>(pose.rotation.toRotationMatrix().transpose() * target_pose_t.rotation);
-    //sVector3T<T> ypr = rotation_diff.toRotationMatrix().eulerAngles(2, 1, 0);
+    // Orientation
+    Vector3T<T> p1(T(orientation_weight_), T(0.0), T(0.0));
+    Vector3T<T> p2(T(0.0), T(orientation_weight_), T(0.0));
 
-    double weighting = 0.5;
-    Vector3T<T> p1(T(weighting), T(0.0), T(0.0));
-    Vector3T<T> p2(T(0.0), T(weighting), T(0.0));
+    Vector3T<T> p1_current = current_pose * p1;
+    Vector3T<T> p1_target = ik_pose_t * p1;
 
-    Vector3T<T> p1_current = current_pose.rotation * p1;
-    Vector3T<T> p1_target = ik_pose_t.rotation * p1;
-
-//    Vector3T<T> p2_current = current_pose * p2;
-//    Vector3T<T> p2_target = ik_pose_t * p2;
+    Vector3T<T> p2_current = current_pose * p2;
+    Vector3T<T> p2_target = ik_pose_t * p2;
 
     Vector3T<T> p1_diff = p1_current - p1_target;
-//    Vector3T<T> p2_diff = p2_current - p2_target;
+    Vector3T<T> p2_diff = p2_current - p2_target;
 
     for (unsigned int i = 0; i < 3; i++) {
-      residuals[i] = translation_diff(i);
-      residuals[i+3] = p1_diff(i);
-//      residuals[i+3] = p2_diff(i);
+      residuals[i] = p1_diff(i);
+      residuals[i+3] = p2_diff(i);
     }
-//    residuals[3] = T(1.0) - pow(current_pose.rotation.dot(ik_pose_t.rotation), T(2.0));
 
     return true;
   }
 
-  static ceres::CostFunction* Create(const std::vector<Link>& chain, const Transform<double>& target_pose, int num_actuated_joints)
+  static ceres::CostFunction* Create(const std::vector<Link>& chain, const Transform<double>& target_pose, int num_actuated_joints, double orientation_weight = 0.5)
   {
-    ceres::DynamicAutoDiffCostFunction<CartesianError> * cost_function =
-        new ceres::DynamicAutoDiffCostFunction<CartesianError>(
-          new CartesianError(chain, target_pose));
+    ceres::DynamicAutoDiffCostFunction<PoseError> * cost_function =
+        new ceres::DynamicAutoDiffCostFunction<PoseError>(
+          new PoseError(chain, target_pose, orientation_weight));
 
     cost_function->AddParameterBlock(num_actuated_joints);
     cost_function->SetNumResiduals(6);
@@ -99,6 +94,7 @@ struct CartesianError {
 
   std::vector<Link> chain_;
   Transform<double> ik_pose_;
+  double orientation_weight_;
 };
 
 }

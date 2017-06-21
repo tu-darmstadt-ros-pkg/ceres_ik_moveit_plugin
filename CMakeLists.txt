@@ -78,9 +78,12 @@ find_package(Ceres REQUIRED)
 
 set(HEADERS
   include/${PROJECT_NAME}/ceres_ik_moveit_plugin.h
-  include/${PROJECT_NAME}/cartesian_error.h
   include/${PROJECT_NAME}/transforms.h
   include/${PROJECT_NAME}/urdf_loader.h
+  include/${PROJECT_NAME}/error_functions/pose_error.h
+  include/${PROJECT_NAME}/error_functions/pose_error_free_angle.h
+  include/${PROJECT_NAME}/error_functions/position_error.h
+  include/${PROJECT_NAME}/error_functions/joint_angle_regularization.h
 )
 
 set(SOURCES

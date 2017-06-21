@@ -1,6 +1,8 @@
 #ifndef CERES_IK_MOVEIT_PLUGIN_H
 #define CERES_IK_MOVEIT_PLUGIN_H
 
+#include <algorithm>
+
 // ROS
 #include <ros/ros.h>
 #include <random_numbers/random_numbers.h>
@@ -17,7 +19,11 @@
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
-#include <ceres_ik_moveit_plugin/cartesian_error.h>
+#include <ceres_ik_moveit_plugin/error_functions/pose_error.h>
+#include <ceres_ik_moveit_plugin/error_functions/pose_error_free_angle.h>
+#include <ceres_ik_moveit_plugin/error_functions/position_error.h>
+#include <ceres_ik_moveit_plugin/error_functions/joint_angle_regularization.h>
+
 #include <ceres_ik_moveit_plugin/transforms.h>
 #include <ceres_ik_moveit_plugin/urdf_loader.h>
 
@@ -97,15 +103,20 @@ protected:
                         const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
 
 private:
+  // chain model
   std::vector<Link> chain_;
-
   int num_actuated_joints_;
-
-  robot_model::RobotModelPtr robot_model_;
-  //robot_state::RobotStatePtr state_;
 
   std::vector<std::string> joint_names_;
   std::vector<std::string> link_names_;
+
+  // optimisation params
+  bool position_only_ik;
+  std::string free_angle_;
+  int ik_solver_attempts_;
+  int max_iterations_;
+  double orientation_weight_;
+  double regularization_factor_;
 
 
   bool active_;

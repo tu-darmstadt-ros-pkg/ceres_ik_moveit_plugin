@@ -25,8 +25,6 @@ namespace ceres_ik_moveit_plugin {
   {
     setValues(robot_description, group_name, base_frame, tip_frame, search_discretization);
 
-    ros::NodeHandle private_handle("~");
-
     rdf_loader::RDFLoader rdf_loader(robot_description_);
     const srdf::ModelSharedPtr& srdf = rdf_loader.getSRDF();
     const urdf::ModelInterfaceSharedPtr& urdf_model = rdf_loader.getURDF();
@@ -37,9 +35,8 @@ namespace ceres_ik_moveit_plugin {
       return false;
     }
 
-    robot_model_.reset(new robot_model::RobotModel(urdf_model, srdf));
-
-    robot_model::JointModelGroup* joint_model_group = robot_model_->getJointModelGroup(group_name);
+    robot_model::RobotModel robot_model(urdf_model, srdf);
+    robot_model::JointModelGroup* joint_model_group = robot_model.getJointModelGroup(group_name);
 
     // Endless checks
     if (!joint_model_group) {
@@ -73,73 +70,22 @@ namespace ceres_ik_moveit_plugin {
       if (chain_[i].getJoint()->isActuated()) {
         num_actuated_joints_++;
       }
-    }
-
-    for (unsigned int i = 0; i < chain_.size(); i++) {
       joint_names_.push_back(chain_[i].getJoint()->getName());
-    }
-
-    ROS_INFO_STREAM("LINKS");
-    std::vector<std::string> link_names = joint_model_group->getLinkModelNames();
-    for (std::vector<std::string>::iterator it = link_names.begin(); it != link_names.end(); ++it) {
-      ROS_INFO_STREAM(*it);
-    }
-    for (unsigned int i = 0; i < chain_.size(); i++) {
       link_names_.push_back(chain_[i].getName());
     }
 
+    // Load parameters
+    ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
+    ROS_INFO_STREAM("Loading params from " << pnh.getNamespace() << " .");
+    pnh.param<std::string>("free_angle", free_angle_, "none");
+    std::transform(free_angle_.begin(), free_angle_.end(), free_angle_.begin(), ::tolower);
+    pnh.param("position_only_ik", position_only_ik, false);
+    pnh.param("ik_solver_attempts", ik_solver_attempts_, 3);
+    pnh.param("max_iterations", max_iterations_, -1);
+    pnh.param("orientation_weight", orientation_weight_, 0.5);
+    pnh.param("regularization_factor", regularization_factor_, 1.0);
+
     active_ = true;
-
-//    Transform<double> pose1(Eigen::Quaterniond::Identity(), Eigen::Vector3d(1, 2, 2));
-//    Transform<double> pose2(Eigen::Quaterniond::Identity(), Eigen::Vector3d(5, 3, 2));
-//    Transform<double> pose3 = pose1 * pose2;
-//    Transform<double> pose4;
-//    convertTransform<double>(pose3, pose4);
-
-//    ROS_INFO_STREAM("pose3: " << pose3.toString());
-//    ROS_INFO_STREAM("pose4: " << pose4.toString());
-
-
-//    std::vector<geometry_msgs::Pose> pose;
-//    std::vector<double> angles = {0.0, 1.55, 2.94, 1.61, 0.0};
-//    std::vector<std::string> names = {"arm_link_0", "arm_link_1", "arm_link_2", "arm_link_3", "arm_link_4"};
-//    getPositionFK(names, angles, pose);
-//    for (unsigned int i = 0; i < pose.size(); i++) {
-//      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
-//      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
-//    }
-
-    geometry_msgs::Pose ik_pose;
-    ik_pose.position.x = 0.177;
-    ik_pose.position.y = 0.101;
-    ik_pose.position.z = 1.349;
-
-    ik_pose.orientation.w = 0.995;
-    ik_pose.orientation.x = 0;
-    ik_pose.orientation.y = 0.101;
-    ik_pose.orientation.z = 0.008;
-
-    std::vector<double> ik_seed_state = {0.0 + 0.2,
-                                         1.55 + 0.2 ,
-                                         2.94 + 0.2,
-                                         1.61 + 0.2,
-                                         0.0 + 0.2};
-
-    std::vector<double> solution;
-    moveit_msgs::MoveItErrorCodes error_code;
-    kinematics::KinematicsQueryOptions options;
-
-    getPositionIK(ik_pose, ik_seed_state, solution, error_code, options);
-
-    std::vector<geometry_msgs::Pose> pose;
-    std::vector<std::string> names = {"arm_link_4"};
-    getPositionFK(names, solution, pose);
-    ROS_INFO_STREAM("FK Solution:");
-    for (unsigned int i = 0; i < pose.size(); i++) {
-      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
-      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
-    }
-
     return true;
   }
 
@@ -208,8 +154,27 @@ namespace ceres_ik_moveit_plugin {
     }
 
     ceres::Problem problem;
-    ceres::CostFunction* cost_function = CartesianError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_);
+    ceres::CostFunction* cost_function;
+    if (position_only_ik) {
+      // only position ik
+      ROS_INFO_STREAM("Position Only IK");
+      cost_function = PositionError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_);
+    } else if (free_angle_ != "none") {
+      // position and orientation ik except one free angle
+      ROS_INFO_STREAM("Pose IK with free angle: " << free_angle_);
+      cost_function = PoseErrorFreeAngle::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, free_angle_, orientation_weight_);
+    } else {
+      // full ik: position and orientation
+      ROS_INFO_STREAM("Full IK");
+      cost_function = PoseError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, orientation_weight_);
+    }
     problem.AddResidualBlock(cost_function, NULL, joint_state);
+
+//    if (regularization_factor_ != 0.0) {
+//      ceres::CostFunction* regularization_function = JointStateRegularization::Create();
+//    }
+//    problem.AddResidualBlock(regularization_factor_, NULL)
+
     int joint_state_idx = 0;
     for (unsigned int i = 0; i < chain_.size(); i++) {
       if (chain_[i].getJoint()->isActuated()) {
@@ -222,33 +187,33 @@ namespace ceres_ik_moveit_plugin {
     ceres::Solver::Options ceres_options;
     ceres_options.max_solver_time_in_seconds = timeout;
     ceres_options.linear_solver_type = ceres::DENSE_QR;
-    ceres_options.minimizer_progress_to_stdout = true;
+//    ceres_options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
     std::cout << summary.BriefReport() << "\n";
 
     solution.resize(num_actuated_joints_);
-    std::stringstream ss;
-    ss << "[";
+//    std::stringstream ss;
+//    ss << "[";
     for (unsigned int i = 0; i < num_actuated_joints_; i++) {
       solution[i] = joint_state[i];
-      ss << solution[i] << ", ";
+//      ss << solution[i] << ", ";
     }
-    ss << "]";
-    ROS_INFO_STREAM("Translation: " << ik_pose.position.x << ", " << ik_pose.position.y << ", " << ik_pose.position.z);
-    ROS_INFO_STREAM("Rotation: " << ik_pose.orientation.w << ", " << ik_pose.orientation.x << ", " << ik_pose.orientation.y << ", " << ik_pose.orientation.z);
-    ROS_INFO_STREAM("Solution: " << ss.str());
+//    ss << "]";
+//    ROS_INFO_STREAM("Translation: " << ik_pose.position.x << ", " << ik_pose.position.y << ", " << ik_pose.position.z);
+//    ROS_INFO_STREAM("Rotation: " << ik_pose.orientation.w << ", " << ik_pose.orientation.x << ", " << ik_pose.orientation.y << ", " << ik_pose.orientation.z);
+//    ROS_INFO_STREAM("Solution: " << ss.str());
 
     if (!solution_callback.empty()) {
       solution_callback(ik_pose, solution, error_code);
       if(error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
       {
-        ROS_DEBUG_STREAM_NAMED("CeresIK","Solution passes callback");
+        ROS_DEBUG_STREAM_NAMED("CeresIK", "Solution passes callback");
         return true;
       }
       else
       {
-        ROS_WARN_STREAM_NAMED("CeresIK","Solution Callback: Solution has error code " << error_code);
+        ROS_WARN_STREAM_NAMED("CeresIK", "Solution Callback: Solution has error code " << error_code);
         return false;
       }
     } else {
