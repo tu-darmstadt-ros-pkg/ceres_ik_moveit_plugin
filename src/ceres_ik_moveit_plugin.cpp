@@ -83,7 +83,12 @@ namespace ceres_ik_moveit_plugin {
     pnh.param("ik_solver_attempts", ik_solver_attempts_, 3);
     pnh.param("max_iterations", max_iterations_, -1);
     pnh.param("orientation_weight", orientation_weight_, 0.5);
-    pnh.param("regularization_factor", regularization_factor_, 1.0);
+    pnh.param<std::vector<double>>("regularization_factors", regularization_factors_, std::vector<double>(num_actuated_joints_, 0));
+    if (regularization_factors_.size() != num_actuated_joints_) {
+      ROS_ERROR_STREAM_NAMED("CeresIK", "Size of regularization factors doesn't match number of actuated joints");
+      return false;
+    }
+    pnh.param("joint_angle_regularization", joint_angle_regularization_, false);
 
     active_ = true;
     return true;
@@ -170,10 +175,11 @@ namespace ceres_ik_moveit_plugin {
     }
     problem.AddResidualBlock(cost_function, NULL, joint_state);
 
-//    if (regularization_factor_ != 0.0) {
-//      ceres::CostFunction* regularization_function = JointStateRegularization::Create();
-//    }
-//    problem.AddResidualBlock(regularization_factor_, NULL)
+    if (joint_angle_regularization_) {
+      ROS_INFO_STREAM("Adding joint angle regularisation");
+      ceres::CostFunction* regularization_function = JointAngleRegularization::Create(ik_seed_state, regularization_factors_);
+      problem.AddResidualBlock(regularization_function, NULL, joint_state);
+    }
 
     int joint_state_idx = 0;
     for (unsigned int i = 0; i < chain_.size(); i++) {

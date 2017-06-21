@@ -116,7 +116,8 @@ private:
   int ik_solver_attempts_;
   int max_iterations_;
   double orientation_weight_;
-  double regularization_factor_;
+  bool joint_angle_regularization_;
+  std::vector<double> regularization_factors_;
 
 
   bool active_;
