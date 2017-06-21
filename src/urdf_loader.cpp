@@ -10,14 +10,22 @@ std::vector<Link> UrdfLoader::buildChain(boost::shared_ptr<const urdf::Link> roo
   for (std::vector<const robot_model::LinkModel*>::iterator it = link_models.begin(); it != link_models.end(); ++it) {
     std::string link_name = (*it)->getName();
 
+    bool found = false;
     for (std::vector<boost::shared_ptr<urdf::Link>>::const_iterator it_childs = current_link->child_links.begin();
-         it_childs != current_link->child_links.end();
+         it_childs != current_link->child_links.end() && !found;
          ++it_childs) {
+
+      ROS_INFO_STREAM(current_link->name << " --> " << (*it_childs)->name);
+
       if ((*it_childs)->name == link_name) {
         addToChain(*it_childs, chain);
         current_link = *it_childs;
-        break;
+        found = true;
       }
+    }
+
+    if (!found) {
+      ROS_WARN_STREAM("URDF Loader could not find link '" << link_name << "'.");
     }
 
   }

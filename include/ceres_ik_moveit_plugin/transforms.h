@@ -46,6 +46,10 @@ template <typename T> Transform<T> operator *(const Transform<T>& lhs, const Tra
   return Transform<T>(lhs.rotation * rhs.rotation, lhs.translation + (lhs.rotation * rhs.translation));
 }
 
+template <typename T> Vector3T<T> operator *(const Transform<T>& lhs, const Vector3T<T>& rhs) {
+  return lhs.translation + lhs.rotation * rhs;
+}
+
 template <typename T> void convertTransform(const Transform<double>& t1, Transform<T>& t2) {
   t2.rotation.x() = T(t1.rotation.x());
   t2.rotation.y() = T(t1.rotation.y());

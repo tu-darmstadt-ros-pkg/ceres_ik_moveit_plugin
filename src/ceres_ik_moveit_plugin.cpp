@@ -79,6 +79,11 @@ namespace ceres_ik_moveit_plugin {
       joint_names_.push_back(chain_[i].getJoint()->getName());
     }
 
+    ROS_INFO_STREAM("LINKS");
+    std::vector<std::string> link_names = joint_model_group->getLinkModelNames();
+    for (std::vector<std::string>::iterator it = link_names.begin(); it != link_names.end(); ++it) {
+      ROS_INFO_STREAM(*it);
+    }
     for (unsigned int i = 0; i < chain_.size(); i++) {
       link_names_.push_back(chain_[i].getName());
     }
@@ -103,6 +108,37 @@ namespace ceres_ik_moveit_plugin {
 //      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
 //      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
 //    }
+
+    geometry_msgs::Pose ik_pose;
+    ik_pose.position.x = 0.177;
+    ik_pose.position.y = 0.101;
+    ik_pose.position.z = 1.349;
+
+    ik_pose.orientation.w = 0.995;
+    ik_pose.orientation.x = 0;
+    ik_pose.orientation.y = 0.101;
+    ik_pose.orientation.z = 0.008;
+
+    std::vector<double> ik_seed_state = {0.0 + 0.2,
+                                         1.55 + 0.2 ,
+                                         2.94 + 0.2,
+                                         1.61 + 0.2,
+                                         0.0 + 0.2};
+
+    std::vector<double> solution;
+    moveit_msgs::MoveItErrorCodes error_code;
+    kinematics::KinematicsQueryOptions options;
+
+    getPositionIK(ik_pose, ik_seed_state, solution, error_code, options);
+
+    std::vector<geometry_msgs::Pose> pose;
+    std::vector<std::string> names = {"arm_link_4"};
+    getPositionFK(names, solution, pose);
+    ROS_INFO_STREAM("FK Solution:");
+    for (unsigned int i = 0; i < pose.size(); i++) {
+      ROS_INFO_STREAM("Translation: " << pose[i].position.x << ", " << pose[i].position.y << ", " << pose[i].position.z);
+      ROS_INFO_STREAM("Rotation: " << pose[i].orientation.w << ", " << pose[i].orientation.x << ", " << pose[i].orientation.y << ", " << pose[i].orientation.z);
+    }
 
     return true;
   }
@@ -178,7 +214,7 @@ namespace ceres_ik_moveit_plugin {
     for (unsigned int i = 0; i < chain_.size(); i++) {
       if (chain_[i].getJoint()->isActuated()) {
         problem.SetParameterLowerBound(joint_state, joint_state_idx, chain_[i].getJoint()->getLowerLimit());
-        problem.SetParameterLowerBound(joint_state, joint_state_idx, chain_[i].getJoint()->getUpperLimit());
+        problem.SetParameterUpperBound(joint_state, joint_state_idx, chain_[i].getJoint()->getUpperLimit());
         joint_state_idx++;
       }
     }

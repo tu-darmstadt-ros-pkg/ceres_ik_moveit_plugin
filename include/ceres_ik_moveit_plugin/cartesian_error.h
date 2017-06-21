@@ -36,14 +36,14 @@
 namespace ceres_ik_moveit_plugin {
 
 struct CartesianError {
-  CartesianError(const std::vector<Link>& chain, const Transform<double>& target_pose)
-    : chain_(chain), target_pose_(target_pose) {}
+  CartesianError(const std::vector<Link>& chain, const Transform<double>& ik_pose)
+    : chain_(chain), ik_pose_(ik_pose) {}
 
   template<typename T>
   bool operator()(T const* const* joint_angles, T* residuals) const {
     int current_joint_idx = 0;
 
-    Transform<T> pose;
+    Transform<T> current_pose;
     for (unsigned int i = 0; i < chain_.size(); i++) {
       T q;
       if (chain_[i].getJoint()->isActuated()) {
@@ -52,20 +52,35 @@ struct CartesianError {
       } else {
         q = T(0.0);
       }
-      pose = pose * chain_[i].pose<T>(q);
+      current_pose = current_pose * chain_[i].pose<T>(q);
     }
 
-    Transform<T> target_pose_t;
-    convertTransform(target_pose_, target_pose_t);
-    Vector3T<T> translation_diff = target_pose_t.translation - pose.translation;
+    Transform<T> ik_pose_t;
+    convertTransform(ik_pose_, ik_pose_t);
+    Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
-    QuaternionT<T> rotation_diff = QuaternionT<T>(pose.rotation.toRotationMatrix().transpose() * target_pose_t.rotation);
-    Vector3T<T> ypr = rotation_diff.toRotationMatrix().eulerAngles(2, 1, 0);
+    //QuaternionT<T> rotation_diff = QuaternionT<T>(pose.rotation.toRotationMatrix().transpose() * target_pose_t.rotation);
+    //sVector3T<T> ypr = rotation_diff.toRotationMatrix().eulerAngles(2, 1, 0);
+
+    double weighting = 0.5;
+    Vector3T<T> p1(T(weighting), T(0.0), T(0.0));
+    Vector3T<T> p2(T(0.0), T(weighting), T(0.0));
+
+    Vector3T<T> p1_current = current_pose.rotation * p1;
+    Vector3T<T> p1_target = ik_pose_t.rotation * p1;
+
+//    Vector3T<T> p2_current = current_pose * p2;
+//    Vector3T<T> p2_target = ik_pose_t * p2;
+
+    Vector3T<T> p1_diff = p1_current - p1_target;
+//    Vector3T<T> p2_diff = p2_current - p2_target;
 
     for (unsigned int i = 0; i < 3; i++) {
       residuals[i] = translation_diff(i);
-      residuals[i+3] = ypr[i];
+      residuals[i+3] = p1_diff(i);
+//      residuals[i+3] = p2_diff(i);
     }
+//    residuals[3] = T(1.0) - pow(current_pose.rotation.dot(ik_pose_t.rotation), T(2.0));
 
     return true;
   }
@@ -83,7 +98,7 @@ struct CartesianError {
   }
 
   std::vector<Link> chain_;
-  Transform<double> target_pose_;
+  Transform<double> ik_pose_;
 };
 
 }
