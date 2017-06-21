@@ -9,6 +9,8 @@
 
 #include <moveit/rdf_loader/rdf_loader.h>
 
+#include <chrono>
+
 // register KDLKinematics as a KinematicsBase implementation
 CLASS_LOADER_REGISTER_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::KinematicsBase)
 
@@ -141,6 +143,8 @@ namespace ceres_ik_moveit_plugin {
                                              const std::vector<double> &consistency_limits,
                                              const kinematics::KinematicsQueryOptions &options) const
   {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     if (!active_) {
       ROS_ERROR_NAMED("CeresIK", "IK failed. Plugin not active");
       error_code.val = error_code.NO_IK_SOLUTION;
@@ -197,6 +201,9 @@ namespace ceres_ik_moveit_plugin {
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
     std::cout << summary.BriefReport() << "\n";
+
+    std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+    ROS_INFO_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << " ns.");
 
     solution.resize(num_actuated_joints_);
 //    std::stringstream ss;
