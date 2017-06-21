@@ -65,6 +65,7 @@ boost::shared_ptr<Joint> UrdfLoader::toJoint(boost::shared_ptr<const urdf::Joint
       joint.reset(new RevoluteJoint(urdf_joint->name, parent_transform.translation, parent_transform.rotation * axis,
                                     M_PI, -M_PI));
       ROS_INFO_STREAM("Adding continuous joint " << joint->getName() << ". Limits [" << joint->getLowerLimit() << ", " << joint->getUpperLimit() << "]");
+      break;
     }
     default:
       ROS_ERROR_STREAM_NAMED("CeresIK", "Unknown joint type in urdf.");
