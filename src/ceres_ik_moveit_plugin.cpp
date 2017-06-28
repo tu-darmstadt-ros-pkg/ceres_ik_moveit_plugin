@@ -77,7 +77,8 @@ namespace ceres_ik_moveit_plugin {
     }
 
     // Load parameters
-    ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
+//    ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
+    ros::NodeHandle pnh("~/" + group_name_);
     ROS_INFO_STREAM("Loading params from " << pnh.getNamespace() << " .");
     pnh.param<std::string>("free_angle", free_angle_, "none");
     std::transform(free_angle_.begin(), free_angle_.end(), free_angle_.begin(), ::tolower);
@@ -200,10 +201,11 @@ namespace ceres_ik_moveit_plugin {
 //    ceres_options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
+    // summary.termination_type
     std::cout << summary.BriefReport() << "\n";
 
     std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
-    ROS_INFO_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << " ns.");
+    ROS_INFO_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms.");
 
     solution.resize(num_actuated_joints_);
 //    std::stringstream ss;
