@@ -77,7 +77,6 @@ namespace ceres_ik_moveit_plugin {
     }
 
     // Load parameters
-//    ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
     ros::NodeHandle pnh("~/" + group_name_);
     ROS_INFO_STREAM("Loading params from " << pnh.getNamespace() << " .");
     pnh.param<std::string>("free_angle", free_angle_, "none");
@@ -146,6 +145,7 @@ namespace ceres_ik_moveit_plugin {
   {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+    // Validity check
     if (!active_) {
       ROS_ERROR_NAMED("CeresIK", "IK failed. Plugin not active");
       error_code.val = error_code.NO_IK_SOLUTION;
@@ -158,34 +158,37 @@ namespace ceres_ik_moveit_plugin {
       return false;
     }
 
+    // copy seed vector to init joint array
     double joint_state[num_actuated_joints_];
     for (unsigned int i = 0; i < num_actuated_joints_; i++) {
       joint_state[i] = ik_seed_state[i];
     }
 
+    // build the problem
     ceres::Problem problem;
     ceres::CostFunction* cost_function;
     if (position_only_ik) {
       // only position ik
-      ROS_INFO_STREAM("Position Only IK");
+      ROS_DEBUG_STREAM("Position Only IK");
       cost_function = PositionError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_);
     } else if (free_angle_ != "none") {
       // position and orientation ik except one free angle
-      ROS_INFO_STREAM("Pose IK with free angle: " << free_angle_);
+      ROS_DEBUG_STREAM("Pose IK with free angle: " << free_angle_);
       cost_function = PoseErrorFreeAngle::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, free_angle_, orientation_weight_);
     } else {
       // full ik: position and orientation
-      ROS_INFO_STREAM("Full IK");
+      ROS_DEBUG_STREAM("Full IK");
       cost_function = PoseError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, orientation_weight_);
     }
     problem.AddResidualBlock(cost_function, NULL, joint_state);
 
     if (joint_angle_regularization_) {
-      ROS_INFO_STREAM("Adding joint angle regularisation");
+      ROS_DEBUG_STREAM("Adding joint angle regularisation");
       ceres::CostFunction* regularization_function = JointAngleRegularization::Create(ik_seed_state, regularization_factors_);
       problem.AddResidualBlock(regularization_function, NULL, joint_state);
     }
 
+    // set joint angle limits
     int joint_state_idx = 0;
     for (unsigned int i = 0; i < chain_.size(); i++) {
       if (chain_[i].getJoint()->isActuated()) {
@@ -195,44 +198,46 @@ namespace ceres_ik_moveit_plugin {
       }
     }
 
+    // Solve the NLE
     ceres::Solver::Options ceres_options;
     ceres_options.max_solver_time_in_seconds = timeout;
     ceres_options.linear_solver_type = ceres::DENSE_QR;
 //    ceres_options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(ceres_options, &problem, &summary);
-    // summary.termination_type
-    std::cout << summary.BriefReport() << "\n";
-
     std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
     ROS_INFO_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms.");
 
+    // check if we got a valid solution
+    if (summary.termination_type != ceres::TerminationType::CONVERGENCE) {
+      ROS_WARN_STREAM("Ceres did not converge. No solution found.");
+      error_code.val = error_code.NO_IK_SOLUTION;
+      return false;
+    }
+    ROS_DEBUG_STREAM(summary.BriefReport());
+
+    // copy solution to vector
     solution.resize(num_actuated_joints_);
-//    std::stringstream ss;
-//    ss << "[";
     for (unsigned int i = 0; i < num_actuated_joints_; i++) {
       solution[i] = joint_state[i];
-//      ss << solution[i] << ", ";
     }
-//    ss << "]";
-//    ROS_INFO_STREAM("Translation: " << ik_pose.position.x << ", " << ik_pose.position.y << ", " << ik_pose.position.z);
-//    ROS_INFO_STREAM("Rotation: " << ik_pose.orientation.w << ", " << ik_pose.orientation.x << ", " << ik_pose.orientation.y << ", " << ik_pose.orientation.z);
-//    ROS_INFO_STREAM("Solution: " << ss.str());
 
+    // use callback to check for collisions
     if (!solution_callback.empty()) {
       solution_callback(ik_pose, solution, error_code);
       if(error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
       {
-        ROS_DEBUG_STREAM_NAMED("CeresIK", "Solution passes callback");
+        ROS_INFO_STREAM_NAMED("CeresIK", "Solution passes callback");
         return true;
       }
       else
       {
-        ROS_WARN_STREAM_NAMED("CeresIK", "Solution Callback: Solution has error code " << error_code);
+        ROS_WARN_STREAM_NAMED("CeresIK", "Solution Callback: Solution has error code " << error_code.val);
         return false;
       }
     } else {
       // no callback provided
+      error_code.val = error_code.SUCCESS;
       return true;
     }
   }
