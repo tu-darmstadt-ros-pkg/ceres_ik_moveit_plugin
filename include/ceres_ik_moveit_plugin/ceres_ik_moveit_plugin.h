@@ -118,6 +118,7 @@ private:
   double orientation_weight_;
   bool joint_angle_regularization_;
   std::vector<double> regularization_factors_;
+  std::vector<double> default_seed_state_;
 
 
   bool active_;
