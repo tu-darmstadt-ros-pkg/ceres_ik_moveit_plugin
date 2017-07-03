@@ -29,6 +29,34 @@
 
 namespace ceres_ik_moveit_plugin {
 
+template<typename T>
+std::string vecToString(const std::vector<T>& vec) {
+  std::stringstream ss;
+  ss << "[";
+  for (unsigned int i = 0; i < vec.size(); ++i) {
+    ss << vec[i];
+    if (i != vec.size() -1) {
+      ss << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
+}
+
+template<typename T>
+std::string arrayToString(const T* vec) {
+  std::stringstream ss;
+  ss << "[";
+  for (unsigned int i = 0; i < vec.size(); ++i) {
+    ss << vec[i];
+    if (i != vec.size() -1) {
+      ss << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
+}
+
 class CeresIkMoveitPlugin : public kinematics::KinematicsBase {
 
 public:
@@ -118,6 +146,7 @@ private:
   double orientation_weight_;
   bool joint_angle_regularization_;
   std::vector<double> regularization_factors_;
+  double goal_tolerance_;
 
 
   bool active_;
