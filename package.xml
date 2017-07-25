@@ -44,10 +44,12 @@
   <build_depend>moveit_core</build_depend>
   <build_depend>moveit_msgs</build_depend>
   <build_depend>moveit_ros_planning</build_depend>
+  <build_depend>ceres-solver</build_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>moveit_core</run_depend>
   <run_depend>moveit_msgs</run_depend>
   <run_depend>moveit_ros_planning</run_depend>
+  <run_depend>ceres-solver</run_depend>
 
   <export>
     <moveit_core plugin="${prefix}/ceres_ik_moveit_plugin_description.xml"/>
