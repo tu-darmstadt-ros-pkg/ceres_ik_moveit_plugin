@@ -58,23 +58,25 @@ struct PoseError {
     // Translation
     Transform<T> ik_pose_t;
     convertTransform(ik_pose_, ik_pose_t);
+    Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
     // Orientation
     Vector3T<T> p1(T(orientation_weight_), T(0.0), T(0.0));
     Vector3T<T> p2(T(0.0), T(orientation_weight_), T(0.0));
 
-    Vector3T<T> p1_current = current_pose * p1;
-    Vector3T<T> p1_target = ik_pose_t * p1;
+    Vector3T<T> p1_current = current_pose.rotation * p1;
+    Vector3T<T> p1_target = ik_pose_t.rotation * p1;
 
-    Vector3T<T> p2_current = current_pose * p2;
-    Vector3T<T> p2_target = ik_pose_t * p2;
+    Vector3T<T> p2_current = current_pose.rotation * p2;
+    Vector3T<T> p2_target = ik_pose_t.rotation * p2;
 
     Vector3T<T> p1_diff = p1_current - p1_target;
     Vector3T<T> p2_diff = p2_current - p2_target;
 
     for (unsigned int i = 0; i < 3; i++) {
-      residuals[i] = p1_diff(i);
-      residuals[i+3] = p2_diff(i);
+      residuals[i] = translation_diff(i);
+      residuals[i+3] = p1_diff(i);
+      residuals[i+6] = p2_diff(i);
     }
 
     return true;
@@ -87,7 +89,7 @@ struct PoseError {
           new PoseError(chain, target_pose, orientation_weight));
 
     cost_function->AddParameterBlock(num_actuated_joints);
-    cost_function->SetNumResiduals(6);
+    cost_function->SetNumResiduals(9);
 
     return static_cast<ceres::CostFunction*> (cost_function);
   }

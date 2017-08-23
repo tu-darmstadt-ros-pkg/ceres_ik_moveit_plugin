@@ -1,8 +1,8 @@
 #include <ceres_ik_moveit_plugin/transforms.h>
 
 namespace ceres_ik_moveit_plugin {
-// Transform
 
+// Transform
 geometry_msgs::Pose transformToMsg(const Transform<double>& transform) {
   geometry_msgs::Pose msg;
   msg.position.x = transform.translation(0);
@@ -23,7 +23,6 @@ Transform<double> msgToTransform(const geometry_msgs::Pose& msg) {
 }
 
 // FixedJoint
-
 FixedJoint::FixedJoint(std::string name, Eigen::Vector3d origin)
   : Joint(name, origin) {}
 
@@ -32,28 +31,16 @@ bool FixedJoint::isActuated() const {
 }
 
 // RevoluteJoint
-
 RevoluteJoint::RevoluteJoint(std::string name, Eigen::Vector3d origin, Eigen::Vector3d axis, double upper_limit, double lower_limit)
   : Joint(name, origin, axis, upper_limit, lower_limit) {}
-
-//Transform<double> RevoluteJoint::pose(double q) const {
-//  return Transform<double>(Eigen::Quaterniond(Eigen::AngleAxisd(q, axis_)), origin_);
-//}
 
 bool RevoluteJoint::isActuated() const {
   return true;
 }
 
 // Link
-
 Link::Link(std::string name, const Transform<double>& tip_transform, boost::shared_ptr<Joint> joint)
   : name_(name), tip_transform_(joint->pose<double>(0).inverse() * tip_transform), joint_(joint) {}
-
-//Transform<double> Link::pose(double q) const {
-//  return joint_->pose<double>(q) * tip_transform_;
-//}
-
-
 
 boost::shared_ptr<Joint> Link::getJoint() const {
   return joint_;

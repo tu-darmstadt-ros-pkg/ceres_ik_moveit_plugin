@@ -146,7 +146,7 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-  // Validity check
+  // Validity checks
   if (!active_) {
     ROS_ERROR_NAMED("CeresIK", "IK failed. Plugin not active");
     error_code.val = error_code.NO_IK_SOLUTION;
@@ -255,7 +255,7 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
       return false;
     }
   } else {
-    // no callback provided
+    ROS_DEBUG_STREAM_NAMED("CeresIK", "No solution callback provided.");
     error_code.val = error_code.SUCCESS;
     return true;
   }
@@ -268,7 +268,6 @@ const std::vector<std::string>& CeresIkMoveitPlugin::getJointNames() const {
 const std::vector<std::string>& CeresIkMoveitPlugin::getLinkNames() const {
   return link_names_;
 }
-
 
 bool CeresIkMoveitPlugin::getPositionIK(const geometry_msgs::Pose &ik_pose,
                                         const std::vector<double> &ik_seed_state,

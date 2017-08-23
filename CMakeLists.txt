@@ -124,8 +124,8 @@ set(SOURCES
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ceres_ik_moveit_plugin
-  CATKIN_DEPENDS geometry_msgs moveit_core moveit_msgs moveit_ros_planning
-  DEPENDS system_lib Ceres
+  CATKIN_DEPENDS geometry_msgs moveit_core moveit_msgs moveit_ros_planning ceres-solver
+#  DEPENDS system_lib Ceres
 )
 
 ###########

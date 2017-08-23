@@ -40,7 +40,6 @@ bool UrdfLoader::addToChain(boost::shared_ptr<const urdf::Link> root, std::vecto
 //  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis() << ", Pose(0): " << joint->pose(0.0).toString());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
   ROS_INFO_STREAM("Adding link " << root->name);
-//  ROS_INFO_STREAM("Tip transform: " << link.getTipTransform().toString());
   chain.push_back(link);
   return true;
 }
