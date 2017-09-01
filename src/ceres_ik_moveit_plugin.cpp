@@ -203,11 +203,14 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
   ceres::Solver::Options ceres_options;
   ceres_options.max_solver_time_in_seconds = timeout;
   ceres_options.linear_solver_type = ceres::DENSE_QR;
-//    ceres_options.minimizer_progress_to_stdout = true;
+  ceres_options.use_nonmonotonic_steps = true;
+  ceres_options.trust_region_strategy_type = ceres::DOGLEG;
+  ceres_options.dogleg_type = ceres::SUBSPACE_DOGLEG;
+//  ceres_options.minimizer_progress_to_stdout = true;
   ceres::Solver::Summary summary;
   ceres::Solve(ceres_options, &problem, &summary);
   std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
-  ROS_INFO_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms.");
+  ROS_DEBUG_STREAM("IK needed " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms.");
   ROS_DEBUG_STREAM(summary.BriefReport());
 
   // check if we got a valid solution
@@ -235,6 +238,8 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
   diff(1) = solution_pose[0].position.y - ik_pose.position.y;
   diff(2) = solution_pose[0].position.z - ik_pose.position.z;
 
+//  ROS_INFO_STREAM("Solution pose: " << solution_pose[0]);
+
   for (unsigned int i = 0; i < 3; i++) {
     if (std::abs(diff(i)) > goal_tolerance_) {
       error_code.val = error_code.NO_IK_SOLUTION;
@@ -251,7 +256,7 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
       //ROS_INFO_STREAM_NAMED("CeresIK", "Solution passes callback");
       return true;
     } else {
-      ROS_WARN_STREAM_NAMED("CeresIK", "Solution Callback returned error code " << error_code.val);
+      ROS_DEBUG_STREAM_NAMED("CeresIK", "Solution Callback returned error code " << error_code.val);
       return false;
     }
   } else {
