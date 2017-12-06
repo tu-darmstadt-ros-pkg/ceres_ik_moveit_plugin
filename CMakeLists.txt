@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_msgs
   moveit_ros_planning
+  moveit_kinematics
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
@@ -124,7 +125,7 @@ set(SOURCES
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ceres_ik_moveit_plugin
-  CATKIN_DEPENDS geometry_msgs moveit_core moveit_msgs moveit_ros_planning ceres-solver
+  CATKIN_DEPENDS geometry_msgs moveit_core moveit_msgs moveit_ros_planning moveit_kinematics ceres-solver
 #  DEPENDS system_lib Ceres
 )
 
