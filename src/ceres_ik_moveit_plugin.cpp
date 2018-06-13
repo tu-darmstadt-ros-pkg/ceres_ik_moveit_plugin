@@ -77,7 +77,7 @@ bool CeresIkMoveitPlugin::initialize(const std::string& robot_description, const
   }
 
   // Load parameters
-  ros::NodeHandle pnh("~/" + group_name_);
+  ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
   ROS_INFO_STREAM("Loading params from " << pnh.getNamespace() << " .");
   pnh.param<std::string>("free_angle", free_angle_, "none");
   std::transform(free_angle_.begin(), free_angle_.end(), free_angle_.begin(), ::tolower);
@@ -240,12 +240,11 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
 
 //  ROS_INFO_STREAM("Solution pose: " << solution_pose[0]);
 
-  for (unsigned int i = 0; i < 3; i++) {
-    if (std::abs(diff(i)) > goal_tolerance_) {
-      error_code.val = error_code.NO_IK_SOLUTION;
-      ROS_WARN_STREAM("Cartesian goal tolerance violated");
-      return false;
-    }
+  double distance = diff.norm();
+  if (distance > goal_tolerance_) {
+    error_code.val = error_code.NO_IK_SOLUTION;
+    ROS_WARN_STREAM("Cartesian goal tolerance violated (" << distance << " > " << goal_tolerance_ << ").");
+    return false;
   }
 
   // use callback to check for collisions

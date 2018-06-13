@@ -61,7 +61,7 @@ struct PoseErrorFreeAngle {
     Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
     // Orientation
-    Vector3T<T> p = vectorDtoT<T>(free_angle_axis_);
+    Vector3T<T> p = (free_angle_axis_ * orientation_weight_).cast<T>();
     Vector3T<T> p_diff = current_pose.rotation * p - ik_pose_t.rotation * p;
 
     for (unsigned int i = 0; i < 3; i++) {
