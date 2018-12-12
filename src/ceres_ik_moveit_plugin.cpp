@@ -1,7 +1,7 @@
 #include <ceres_ik_moveit_plugin/ceres_ik_moveit_plugin.h>
 
 #include <moveit/kdl_kinematics_plugin/kdl_kinematics_plugin.h>
-#include <class_loader/class_loader.h>
+#include <class_loader/class_loader.hpp>
 
 // URDF, SRDF
 #include <urdf_model/model.h>

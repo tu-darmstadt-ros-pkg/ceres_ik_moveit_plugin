@@ -2,18 +2,18 @@
 
 namespace ceres_ik_moveit_plugin {
 
-std::vector<Link> UrdfLoader::buildChain(boost::shared_ptr<const urdf::Link> root, const robot_model::JointModelGroup* joint_group) {
+std::vector<Link> UrdfLoader::buildChain(std::shared_ptr<const urdf::Link> root, const robot_model::JointModelGroup* joint_group) {
   ROS_INFO_STREAM("Parsing URDF");
   std::vector<Link> chain;
   std::vector<const robot_model::LinkModel*> link_models = joint_group->getLinkModels();
 
-  boost::shared_ptr<const urdf::Link> current_link = root;
+  std::shared_ptr<const urdf::Link> current_link = root;
   for (std::vector<const robot_model::LinkModel*>::iterator it = link_models.begin(); it != link_models.end(); ++it) {
     std::string link_name = (*it)->getName();
 
     bool found = false;
     ROS_INFO_STREAM(current_link->name << ":");
-    for (std::vector<boost::shared_ptr<urdf::Link>>::const_iterator it_childs = current_link->child_links.begin();
+    for (std::vector<std::shared_ptr<urdf::Link>>::const_iterator it_childs = current_link->child_links.begin();
          it_childs != current_link->child_links.end() && !found;
          ++it_childs) {
 
@@ -35,8 +35,8 @@ std::vector<Link> UrdfLoader::buildChain(boost::shared_ptr<const urdf::Link> roo
   return chain;
 }
 
-bool UrdfLoader::addToChain(boost::shared_ptr<const urdf::Link> root, std::vector<Link>& chain) {
-  boost::shared_ptr<Joint> joint = toJoint(root->parent_joint);
+bool UrdfLoader::addToChain(std::shared_ptr<const urdf::Link> root, std::vector<Link>& chain) {
+  std::shared_ptr<Joint> joint = toJoint(root->parent_joint);
 //  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis() << ", Pose(0): " << joint->pose(0.0).toString());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
   ROS_INFO_STREAM("Adding link " << root->name);
@@ -44,8 +44,8 @@ bool UrdfLoader::addToChain(boost::shared_ptr<const urdf::Link> root, std::vecto
   return true;
 }
 
-boost::shared_ptr<Joint> UrdfLoader::toJoint(boost::shared_ptr<const urdf::Joint> urdf_joint) {
-  boost::shared_ptr<Joint> joint;
+std::shared_ptr<Joint> UrdfLoader::toJoint(std::shared_ptr<const urdf::Joint> urdf_joint) {
+  std::shared_ptr<Joint> joint;
   Transform<double> parent_transform = toTransform(urdf_joint->parent_to_joint_origin_transform);
   switch (urdf_joint->type) {
     case urdf::Joint::FIXED:

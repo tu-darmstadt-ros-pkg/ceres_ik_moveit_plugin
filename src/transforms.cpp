@@ -39,10 +39,10 @@ bool RevoluteJoint::isActuated() const {
 }
 
 // Link
-Link::Link(std::string name, const Transform<double>& tip_transform, boost::shared_ptr<Joint> joint)
+Link::Link(std::string name, const Transform<double>& tip_transform, std::shared_ptr<Joint> joint)
   : name_(name), tip_transform_(joint->pose<double>(0).inverse() * tip_transform), joint_(joint) {}
 
-boost::shared_ptr<Joint> Link::getJoint() const {
+std::shared_ptr<Joint> Link::getJoint() const {
   return joint_;
 }
 
