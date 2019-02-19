@@ -29,7 +29,7 @@
   <depend>moveit_kinematics</depend>
   <depend>moveit_msgs</depend>
   <depend>moveit_ros_planning</depend>
-  <depend>ceres-solver</depend>
+  <depend>ceres_catkin</depend>
 
   <export>
     <moveit_core plugin="${prefix}/ceres_ik_moveit_plugin_description.xml"/>
