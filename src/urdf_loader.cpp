@@ -2,7 +2,7 @@
 
 namespace ceres_ik_moveit_plugin {
 
-std::vector<Link> UrdfLoader::buildChain(std::shared_ptr<const urdf::Link> root, const robot_model::JointModelGroup* joint_group) {
+std::vector<Link> UrdfLoader::buildChain(urdf::LinkConstSharedPtr root, const robot_model::JointModelGroup* joint_group) {
   ROS_INFO_STREAM("Parsing URDF");
   std::vector<Link> chain;
   std::vector<const robot_model::LinkModel*> link_models = joint_group->getLinkModels();
@@ -35,7 +35,7 @@ std::vector<Link> UrdfLoader::buildChain(std::shared_ptr<const urdf::Link> root,
   return chain;
 }
 
-bool UrdfLoader::addToChain(std::shared_ptr<const urdf::Link> root, std::vector<Link>& chain) {
+bool UrdfLoader::addToChain(urdf::LinkConstSharedPtr root, std::vector<Link>& chain) {
   std::shared_ptr<Joint> joint = toJoint(root->parent_joint);
 //  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis() << ", Pose(0): " << joint->pose(0.0).toString());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
@@ -44,7 +44,7 @@ bool UrdfLoader::addToChain(std::shared_ptr<const urdf::Link> root, std::vector<
   return true;
 }
 
-std::shared_ptr<Joint> UrdfLoader::toJoint(std::shared_ptr<const urdf::Joint> urdf_joint) {
+std::shared_ptr<Joint> UrdfLoader::toJoint(urdf::JointConstSharedPtr urdf_joint) {
   std::shared_ptr<Joint> joint;
   Transform<double> parent_transform = toTransform(urdf_joint->parent_to_joint_origin_transform);
   switch (urdf_joint->type) {

@@ -15,8 +15,8 @@ public:
 
 
 private:
-  bool addToChain(std::shared_ptr<const urdf::Link> root, std::vector<Link>& chain);
-  std::shared_ptr<Joint> toJoint(std::shared_ptr<const urdf::Joint> urdf_joint);
+  bool addToChain(urdf::LinkConstSharedPtr root, std::vector<Link>& chain);
+  std::shared_ptr<Joint> toJoint(urdf::JointConstSharedPtr urdf_joint);
 
   Transform<double> toTransform(urdf::Pose p);
   Eigen::Quaterniond toRotation(urdf::Rotation r);

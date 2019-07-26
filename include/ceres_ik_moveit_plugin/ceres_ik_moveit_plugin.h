@@ -43,20 +43,6 @@ std::string vecToString(const std::vector<T>& vec) {
   return ss.str();
 }
 
-template<typename T>
-std::string arrayToString(const T* vec) {
-  std::stringstream ss;
-  ss << "[";
-  for (unsigned int i = 0; i < vec.size(); ++i) {
-    ss << vec[i];
-    if (i != vec.size() -1) {
-      ss << ", ";
-    }
-  }
-  ss << "]";
-  return ss.str();
-}
-
 class CeresIkMoveitPlugin : public kinematics::KinematicsBase {
 
 public:
@@ -64,48 +50,48 @@ public:
 
 
   virtual bool initialize(const std::string& robot_description, const std::string& group_name,
-                          const std::string& base_name, const std::string& tip_name, double search_discretization);
+                          const std::string& base_name, const std::string& tip_name, double search_discretization) override;
 
 
   virtual bool getPositionFK(const std::vector<std::string>& link_names, const std::vector<double>& joint_angles,
-                             std::vector<geometry_msgs::Pose>& poses) const;
+                             std::vector<geometry_msgs::Pose>& poses) const override;
 
   virtual bool
   getPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state,
                 std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
-                const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
+                const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   virtual bool
   searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
                    std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
-                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
+                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   virtual bool
   searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
                    const std::vector<double>& consistency_limits, std::vector<double>& solution,
                    moveit_msgs::MoveItErrorCodes& error_code,
-                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
+                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   virtual bool
   searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
                    std::vector<double>& solution, const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
-                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
+                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   virtual bool
   searchPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
                    const std::vector<double>& consistency_limits, std::vector<double>& solution,
                    const IKCallbackFn& solution_callback, moveit_msgs::MoveItErrorCodes& error_code,
-                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const;
+                   const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   /**
    * @brief  Return all the joint names in the order they are used internally
    */
-  virtual const std::vector<std::string>& getJointNames() const;
+  virtual const std::vector<std::string>& getJointNames() const override;
 
   /**
    * @brief  Return all the link names in the order they are represented internally
    */
-  virtual const std::vector<std::string>& getLinkNames() const;
+  virtual const std::vector<std::string>& getLinkNames() const override;
 
 
 protected:
