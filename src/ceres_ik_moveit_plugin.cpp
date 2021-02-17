@@ -25,28 +25,13 @@ CeresIkMoveitPlugin::CeresIkMoveitPlugin()
   joint_angle_regularization_(false),
   goal_tolerance_(0.01),
   active_(false)
-  {
+  {}
 
-}
-
-bool CeresIkMoveitPlugin::initialize(const std::string& robot_description, const std::string& group_name,
-                                     const std::string& base_frame, const std::string& tip_frame,
-                                     double search_discretization)
-{
-  setValues(robot_description, group_name, base_frame, tip_frame, search_discretization);
-
-  rdf_loader::RDFLoader rdf_loader(robot_description_);
-  const srdf::ModelSharedPtr& srdf = rdf_loader.getSRDF();
-  const urdf::ModelInterfaceSharedPtr& urdf_model = rdf_loader.getURDF();
-
-  if (!urdf_model || !srdf)
-  {
-    ROS_ERROR_NAMED("CeresIK", "URDF and SRDF must be loaded for Ceres IK solver to work.");
-    return false;
-  }
-
-  robot_model::RobotModel robot_model(urdf_model, srdf);
-  robot_model::JointModelGroup* joint_model_group = robot_model.getJointModelGroup(group_name);
+bool CeresIkMoveitPlugin::initialize(const moveit::core::RobotModel &robot_model, const std::string &group_name,
+                                     const std::string &base_frame, const std::vector<std::string> &tip_frames,
+                                     double search_discretization) {
+  storeValues(robot_model, group_name, base_frame, tip_frames, search_discretization);
+  const robot_model::JointModelGroup* joint_model_group = robot_model.getJointModelGroup(group_name);
 
   // Endless checks
   if (!joint_model_group) {
@@ -74,7 +59,7 @@ bool CeresIkMoveitPlugin::initialize(const std::string& robot_description, const
 
   // Load robot transforms into custom templated data structure
   UrdfLoader urdf_loader;
-  chain_ = urdf_loader.buildChain(urdf_model->getRoot(), joint_model_group);
+  chain_ = urdf_loader.buildChain(robot_model.getURDF()->getRoot(), joint_model_group);
   num_actuated_joints_ = 0;
   for (const Link& link : chain_) {
     if (link.getJoint()->isActuated()) {
@@ -141,7 +126,6 @@ bool CeresIkMoveitPlugin::getPositionFK(const std::vector<std::string>& link_nam
 
   return true;
 }
-
 
 bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
                                            const std::vector<double> &ik_seed_state,
