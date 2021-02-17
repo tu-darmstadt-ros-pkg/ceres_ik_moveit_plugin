@@ -2,18 +2,18 @@
 
 namespace ceres_ik_moveit_plugin {
 
-std::vector<Link> UrdfLoader::buildChain(urdf::LinkConstSharedPtr root, const robot_model::JointModelGroup* joint_group) {
+std::vector<Link> UrdfLoader::buildChain(const urdf::LinkConstSharedPtr& root, const robot_model::JointModelGroup* joint_group) {
   ROS_INFO_STREAM("Parsing URDF");
   std::vector<Link> chain;
   std::vector<const robot_model::LinkModel*> link_models = joint_group->getLinkModels();
 
   std::shared_ptr<const urdf::Link> current_link = root;
-  for (std::vector<const robot_model::LinkModel*>::iterator it = link_models.begin(); it != link_models.end(); ++it) {
-    std::string link_name = (*it)->getName();
+  for (auto & link_model : link_models) {
+    const std::string& link_name = link_model->getName();
 
     bool found = false;
     ROS_INFO_STREAM(current_link->name << ":");
-    for (std::vector<std::shared_ptr<urdf::Link>>::const_iterator it_childs = current_link->child_links.begin();
+    for (auto it_childs = current_link->child_links.begin();
          it_childs != current_link->child_links.end() && !found;
          ++it_childs) {
 
@@ -35,7 +35,7 @@ std::vector<Link> UrdfLoader::buildChain(urdf::LinkConstSharedPtr root, const ro
   return chain;
 }
 
-bool UrdfLoader::addToChain(urdf::LinkConstSharedPtr root, std::vector<Link>& chain) {
+bool UrdfLoader::addToChain(const urdf::LinkConstSharedPtr& root, std::vector<Link>& chain) {
   std::shared_ptr<Joint> joint = toJoint(root->parent_joint);
 //  ROS_INFO_STREAM("Origin: " << joint->getOrigin() << ", Axis: " << joint->getAxis() << ", Pose(0): " << joint->pose(0.0).toString());
   Link link(root->name, toTransform(root->parent_joint->parent_to_joint_origin_transform), joint);
@@ -44,7 +44,7 @@ bool UrdfLoader::addToChain(urdf::LinkConstSharedPtr root, std::vector<Link>& ch
   return true;
 }
 
-std::shared_ptr<Joint> UrdfLoader::toJoint(urdf::JointConstSharedPtr urdf_joint) {
+std::shared_ptr<Joint> UrdfLoader::toJoint(const urdf::JointConstSharedPtr& urdf_joint) {
   std::shared_ptr<Joint> joint;
   Transform<double> parent_transform = toTransform(urdf_joint->parent_to_joint_origin_transform);
   switch (urdf_joint->type) {

@@ -11,16 +11,15 @@ namespace ceres_ik_moveit_plugin {
 
 class UrdfLoader {
 public:
-  std::vector<Link> buildChain(std::shared_ptr<const urdf::Link> root, const robot_model::JointModelGroup* joint_group);
-
+  std::vector<Link> buildChain(const urdf::LinkConstSharedPtr& root, const robot_model::JointModelGroup* joint_group);
 
 private:
-  bool addToChain(urdf::LinkConstSharedPtr root, std::vector<Link>& chain);
-  std::shared_ptr<Joint> toJoint(urdf::JointConstSharedPtr urdf_joint);
+  bool addToChain(const urdf::LinkConstSharedPtr& root, std::vector<Link>& chain);
+  std::shared_ptr<Joint> toJoint(const urdf::JointConstSharedPtr& urdf_joint);
 
   Transform<double> toTransform(urdf::Pose p);
-  Eigen::Quaterniond toRotation(urdf::Rotation r);
-  Eigen::Vector3d toTranslation(urdf::Vector3 v);
+  static Eigen::Quaterniond toRotation(urdf::Rotation r);
+  static Eigen::Vector3d toTranslation(urdf::Vector3 v);
 };
 
 }
