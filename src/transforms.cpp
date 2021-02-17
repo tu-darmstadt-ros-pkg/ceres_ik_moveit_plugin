@@ -18,8 +18,8 @@ geometry_msgs::Pose transformToMsg(const Transform<double>& transform) {
 }
 
 Transform<double> msgToTransform(const geometry_msgs::Pose& msg) {
-  return Transform<double>(Eigen::Quaterniond(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z),
-                   Eigen::Vector3d(msg.position.x, msg.position.y, msg.position.z));
+  return {Eigen::Quaterniond(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z),
+          Eigen::Vector3d(msg.position.x, msg.position.y, msg.position.z)};
 }
 
 // FixedJoint

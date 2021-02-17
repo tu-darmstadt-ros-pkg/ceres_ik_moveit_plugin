@@ -110,7 +110,7 @@ public:
     return Transform<T>();
   }
 
-  bool isActuated() const;
+  bool isActuated() const override;
 };
 
 class RevoluteJoint : public Joint {
@@ -123,14 +123,14 @@ public:
     return Transform<T>(QuaternionT<T>(Eigen::AngleAxis<T>(q, axis_t)), origin_t);
   }
 
-  bool isActuated() const;
+  bool isActuated() const override;
 };
 
 template <typename T> Transform<T> Joint::pose(T q) const {
-  if (const FixedJoint* joint = dynamic_cast<const FixedJoint*>(this)) {
+  if (const auto* joint = dynamic_cast<const FixedJoint*>(this)) {
     return joint->pose(q);
   }
-  else if (const RevoluteJoint* joint = dynamic_cast<const RevoluteJoint*>(this)) {
+  else if (const auto* joint = dynamic_cast<const RevoluteJoint*>(this)) {
     return joint->pose(q);
   }
   else {
