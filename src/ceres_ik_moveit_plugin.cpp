@@ -1,7 +1,7 @@
 #include <ceres_ik_moveit_plugin/ceres_ik_moveit_plugin.h>
 
 #include <moveit/kdl_kinematics_plugin/kdl_kinematics_plugin.h>
-#include <class_loader/class_loader.hpp>
+#include <pluginlib/class_list_macros.h>
 
 // URDF, SRDF
 #include <urdf_model/model.h>
@@ -11,8 +11,8 @@
 
 #include <chrono>
 
-// register KDLKinematics as a KinematicsBase implementation
-CLASS_LOADER_REGISTER_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::KinematicsBase)
+// register CeresIkMoveitPlugin as a KinematicsBase implementation
+PLUGINLIB_EXPORT_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::KinematicsBase)
 
 namespace ceres_ik_moveit_plugin {
 
