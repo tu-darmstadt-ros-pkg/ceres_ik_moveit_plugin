@@ -17,7 +17,15 @@ PLUGINLIB_EXPORT_CLASS(ceres_ik_moveit_plugin::CeresIkMoveitPlugin, kinematics::
 namespace ceres_ik_moveit_plugin {
 
 CeresIkMoveitPlugin::CeresIkMoveitPlugin()
-  : active_(false) {
+  : num_actuated_joints_(0),
+  position_only_ik(false),
+  ik_solver_attempts_(3),
+  max_iterations_(-1),
+  orientation_weight_(0.5),
+  joint_angle_regularization_(false),
+  goal_tolerance_(0.01),
+  active_(false)
+  {
 
 }
 
@@ -68,12 +76,12 @@ bool CeresIkMoveitPlugin::initialize(const std::string& robot_description, const
   UrdfLoader urdf_loader;
   chain_ = urdf_loader.buildChain(urdf_model->getRoot(), joint_model_group);
   num_actuated_joints_ = 0;
-  for (unsigned int i = 0; i < chain_.size(); i++) {
-    if (chain_[i].getJoint()->isActuated()) {
+  for (const Link& link : chain_) {
+    if (link.getJoint()->isActuated()) {
       num_actuated_joints_++;
     }
-    joint_names_.push_back(chain_[i].getJoint()->getName());
-    link_names_.push_back(chain_[i].getName());
+    joint_names_.push_back(link.getJoint()->getName());
+    link_names_.push_back(link.getName());
   }
 
   // Load parameters
@@ -115,17 +123,17 @@ bool CeresIkMoveitPlugin::getPositionFK(const std::vector<std::string>& link_nam
   poses.resize(link_names.size());
 
   int current_angle_idx = 0;
-  for (unsigned int i = 0; i < chain_.size(); i++) {
+  for (const Link& link : chain_) {
     double q;
-    if (chain_[i].getJoint()->isActuated()) {
+    if (link.getJoint()->isActuated()) {
       q = joint_angles[current_angle_idx];
       current_angle_idx++;
     } else {
       q = 0.0;
     }
-    pose = pose * chain_[i].pose<double>(q);
+    pose = pose * link.pose<double>(q);
     for (unsigned int j = 0; j < link_names.size(); j++) {
-      if (chain_[i].getName() == link_names[j]) {
+      if (link.getName() == link_names[j]) {
         poses[j] = transformToMsg(pose);
       }
     }
@@ -181,20 +189,20 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
     ROS_DEBUG_STREAM("Full IK");
     cost_function = PoseError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, orientation_weight_);
   }
-  problem.AddResidualBlock(cost_function, NULL, joint_state);
+  problem.AddResidualBlock(cost_function, nullptr, joint_state);
 
   if (joint_angle_regularization_) {
     ROS_DEBUG_STREAM("Adding joint angle regularisation");
     ceres::CostFunction* regularization_function = JointAngleRegularization::Create(ik_seed_state, regularization_factors_);
-    problem.AddResidualBlock(regularization_function, NULL, joint_state);
+    problem.AddResidualBlock(regularization_function, nullptr, joint_state);
   }
 
   // set joint angle limits
   int joint_state_idx = 0;
-  for (unsigned int i = 0; i < chain_.size(); i++) {
-    if (chain_[i].getJoint()->isActuated()) {
-      problem.SetParameterLowerBound(joint_state, joint_state_idx, chain_[i].getJoint()->getLowerLimit());
-      problem.SetParameterUpperBound(joint_state, joint_state_idx, chain_[i].getJoint()->getUpperLimit());
+  for (const Link& link : chain_) {
+    if (link.getJoint()->isActuated()) {
+      problem.SetParameterLowerBound(joint_state, joint_state_idx, link.getJoint()->getLowerLimit());
+      problem.SetParameterUpperBound(joint_state, joint_state_idx, link.getJoint()->getUpperLimit());
       joint_state_idx++;
     }
   }
