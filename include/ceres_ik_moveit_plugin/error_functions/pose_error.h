@@ -60,23 +60,23 @@ struct PoseError {
     convertTransform(ik_pose_, ik_pose_t);
     Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
-    // Orientation
-    Vector3T<T> p1(T(orientation_weight_), T(0.0), T(0.0));
-    Vector3T<T> p2(T(0.0), T(orientation_weight_), T(0.0));
-
-    Vector3T<T> p1_current = current_pose.rotation * p1;
-    Vector3T<T> p1_target = ik_pose_t.rotation * p1;
-
-    Vector3T<T> p2_current = current_pose.rotation * p2;
-    Vector3T<T> p2_target = ik_pose_t.rotation * p2;
-
-    Vector3T<T> p1_diff = p1_current - p1_target;
-    Vector3T<T> p2_diff = p2_current - p2_target;
-
     for (unsigned int i = 0; i < 3; i++) {
       residuals[i] = translation_diff(i);
-      residuals[i+3] = p1_diff(i);
-      residuals[i+6] = p2_diff(i);
+    }
+
+
+    // Orientation
+    for (unsigned int i = 0; i < 2; ++i) {
+      Vector3T<T> a = Vector3T<T>::Zero();
+      a(i) = T(1.0);
+
+      Vector3T<T> a_current = current_pose.rotation * a;
+      Vector3T<T> a_target = ik_pose_t.rotation * a;
+
+      Vector3T<T> diff = a_current - a_target;
+      for (unsigned int j = 0; j < 3; ++j) {
+        residuals[3 + i*3 + j] = T(orientation_weight_) * diff(j);
+      }
     }
 
     return true;
