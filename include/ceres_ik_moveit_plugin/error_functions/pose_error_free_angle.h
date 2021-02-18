@@ -36,7 +36,8 @@
 namespace ceres_ik_moveit_plugin {
 
 struct PoseErrorFreeAngle {
-  PoseErrorFreeAngle(const std::vector<Link>& chain, const Transform<double>& ik_pose, Eigen::Vector3d free_angle_axis, double orientation_weight = 0.5)
+  PoseErrorFreeAngle(const std::vector<Link>& chain, const Transform<double>& ik_pose,
+                     const Eigen::Vector3d& free_angle_axis, double orientation_weight = 0.5)
     : chain_(chain), ik_pose_(ik_pose), free_angle_axis_(free_angle_axis), orientation_weight_(orientation_weight) {}
 
   template<typename T>
@@ -101,7 +102,7 @@ struct PoseErrorFreeAngle {
     return static_cast<ceres::CostFunction*> (cost_function);
   }
 
-  std::vector<Link> chain_;
+  const std::vector<Link>& chain_;
   Transform<double> ik_pose_;
   double orientation_weight_;
   Eigen::Vector3d free_angle_axis_;

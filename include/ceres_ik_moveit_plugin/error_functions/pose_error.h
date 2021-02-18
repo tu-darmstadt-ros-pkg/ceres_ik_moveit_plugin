@@ -94,7 +94,7 @@ struct PoseError {
     return static_cast<ceres::CostFunction*> (cost_function);
   }
 
-  std::vector<Link> chain_;
+  const std::vector<Link>& chain_;
   Transform<double> ik_pose_;
   double orientation_weight_;
 };

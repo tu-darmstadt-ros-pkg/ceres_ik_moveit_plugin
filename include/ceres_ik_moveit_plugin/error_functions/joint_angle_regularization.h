@@ -36,7 +36,7 @@
 namespace ceres_ik_moveit_plugin {
 
 struct JointAngleRegularization {
-  JointAngleRegularization(const std::vector<double>& start_state, std::vector<double> weights)
+  JointAngleRegularization(const std::vector<double>& start_state, const std::vector<double>& weights)
     : start_state_(start_state), weights_(weights) {}
 
   template<typename T>
@@ -48,7 +48,7 @@ struct JointAngleRegularization {
     return true;
   }
 
-  static ceres::CostFunction* Create(const std::vector<double>& start_state, std::vector<double> weights)
+  static ceres::CostFunction* Create(const std::vector<double>& start_state, const std::vector<double>& weights)
   {
     auto * cost_function =
         new ceres::DynamicAutoDiffCostFunction<JointAngleRegularization>(
