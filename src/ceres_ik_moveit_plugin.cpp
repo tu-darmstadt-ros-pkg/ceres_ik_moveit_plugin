@@ -151,12 +151,6 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
     return false;
   }
 
-  // copy seed vector to init joint array
-  double joint_state[num_actuated_joints_];
-  for (unsigned int i = 0; i < num_actuated_joints_; i++) {
-    joint_state[i] = ik_seed_state[i];
-  }
-
   // build the problem
   ceres::Problem problem;
   ceres::CostFunction* cost_function;
@@ -173,20 +167,22 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
     ROS_DEBUG_STREAM("Full IK");
     cost_function = PoseError::Create(chain_, msgToTransform(ik_pose), num_actuated_joints_, orientation_weight_);
   }
-  problem.AddResidualBlock(cost_function, nullptr, joint_state);
+
+  solution = ik_seed_state;
+  problem.AddResidualBlock(cost_function, nullptr, &solution[0]);
 
   if (joint_angle_regularization_) {
     ROS_DEBUG_STREAM("Adding joint angle regularisation");
     ceres::CostFunction* regularization_function = JointAngleRegularization::Create(ik_seed_state, regularization_factors_);
-    problem.AddResidualBlock(regularization_function, nullptr, joint_state);
+    problem.AddResidualBlock(regularization_function, nullptr, &solution[0]);
   }
 
   // set joint angle limits
   int joint_state_idx = 0;
   for (const Link& link : chain_) {
     if (link.getJoint()->isActuated()) {
-      problem.SetParameterLowerBound(joint_state, joint_state_idx, link.getJoint()->getLowerLimit());
-      problem.SetParameterUpperBound(joint_state, joint_state_idx, link.getJoint()->getUpperLimit());
+      problem.SetParameterLowerBound(&solution[0], joint_state_idx, link.getJoint()->getLowerLimit());
+      problem.SetParameterUpperBound(&solution[0], joint_state_idx, link.getJoint()->getUpperLimit());
       joint_state_idx++;
     }
   }
@@ -216,11 +212,6 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
 //  problem.Evaluate(ceres::Problem::EvaluateOptions(), NULL, &residuals, NULL, NULL);
   //ROS_INFO_STREAM("Residuals: " << vecToString(residuals));
 
-  // copy solution to vector
-  solution.resize(num_actuated_joints_);
-  for (unsigned int i = 0; i < num_actuated_joints_; i++) {
-    solution[i] = joint_state[i];
-  }
 
   // FK to check goal tolerance
   std::vector<geometry_msgs::Pose> solution_pose;
