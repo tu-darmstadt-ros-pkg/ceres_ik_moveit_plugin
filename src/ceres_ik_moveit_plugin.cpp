@@ -68,6 +68,7 @@ bool CeresIkMoveitPlugin::initialize(const moveit::core::RobotModel &robot_model
     joint_names_.push_back(link.getJoint()->getName());
     link_names_.push_back(link.getName());
   }
+  ROS_INFO_STREAM("Actuated joints in chain: " << num_actuated_joints_);
 
   // Load parameters
   ros::NodeHandle pnh("/robot_description_kinematics/" + group_name_);
@@ -137,7 +138,6 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
                                            const kinematics::KinematicsQueryOptions &options) const
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
   // Validity checks
   if (!active_) {
     ROS_ERROR_NAMED("CeresIK", "IK failed. Plugin not active");
