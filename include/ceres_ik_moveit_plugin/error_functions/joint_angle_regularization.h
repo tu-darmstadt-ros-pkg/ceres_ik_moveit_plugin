@@ -35,6 +35,17 @@
 
 namespace ceres_ik_moveit_plugin {
 
+template <typename T>
+T velocity_regularization(T x, T t_vel) {
+  if (x > t_vel) {
+    T a = log(x/t_vel);
+    ROS_INFO_STREAM("a = " << a);
+    return a * a * a;
+  } else {
+    return T(0.0);
+  }
+}
+
 struct JointAngleRegularization {
   JointAngleRegularization(const std::vector<double>& start_state, const std::vector<double>& weights)
     : start_state_(start_state), weights_(weights) {}
@@ -43,6 +54,7 @@ struct JointAngleRegularization {
   bool operator()(T const* const* joint_angles, T* residuals) const {
     for (unsigned int i = 0; i < start_state_.size(); i++) {
       residuals[i] = T(weights_[i]) * (joint_angles[0][i] - T(start_state_[i]));
+      residuals[i] += velocity_regularization(T(1.0) - cos(joint_angles[0][i] - T(start_state_[i])), T(0.01));
     }
 
     return true;
