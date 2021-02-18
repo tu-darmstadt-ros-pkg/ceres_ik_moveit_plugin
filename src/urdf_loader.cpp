@@ -62,7 +62,7 @@ std::shared_ptr<Joint> UrdfLoader::toJoint(const urdf::JointConstSharedPtr& urdf
     case urdf::Joint::CONTINUOUS: {
       Eigen::Vector3d axis = toTranslation(urdf_joint->axis);
       joint.reset(new RevoluteJoint(urdf_joint->name, parent_transform.translation, parent_transform.rotation * axis,
-                                    M_PI, -M_PI));
+                                    std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest()));
       ROS_INFO_STREAM("Adding continuous joint " << joint->getName() << ". Limits [" << joint->getLowerLimit() << ", " << joint->getUpperLimit() << "]");
       break;
     }
