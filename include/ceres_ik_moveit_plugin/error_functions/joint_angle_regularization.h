@@ -50,7 +50,7 @@ struct JointAngleRegularization {
 
   static ceres::CostFunction* Create(const std::vector<double>& start_state, std::vector<double> weights)
   {
-    ceres::DynamicAutoDiffCostFunction<JointAngleRegularization> * cost_function =
+    auto * cost_function =
         new ceres::DynamicAutoDiffCostFunction<JointAngleRegularization>(
           new JointAngleRegularization(start_state, weights));
 

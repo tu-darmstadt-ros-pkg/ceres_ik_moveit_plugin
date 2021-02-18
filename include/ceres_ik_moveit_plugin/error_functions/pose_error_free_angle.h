@@ -44,15 +44,15 @@ struct PoseErrorFreeAngle {
     int current_joint_idx = 0;
 
     Transform<T> current_pose;
-    for (unsigned int i = 0; i < chain_.size(); i++) {
+    for (const auto& link: chain_) {
       T q;
-      if (chain_[i].getJoint()->isActuated()) {
+      if (link.getJoint()->isActuated()) {
         q = joint_angles[0][current_joint_idx];
         current_joint_idx++;
       } else {
         q = T(0.0);
       }
-      current_pose = current_pose * chain_[i].pose<T>(q);
+      current_pose = current_pose * link.pose<T>(q);
     }
 
     // Translation
@@ -91,7 +91,7 @@ struct PoseErrorFreeAngle {
         break;
     }
 
-    ceres::DynamicAutoDiffCostFunction<PoseErrorFreeAngle> * cost_function =
+    auto * cost_function =
         new ceres::DynamicAutoDiffCostFunction<PoseErrorFreeAngle>(
           new PoseErrorFreeAngle(chain, target_pose, free_angle_axis, orientation_weight));
 
