@@ -61,18 +61,6 @@ struct PoseError {
     Vector3T<T> translation_diff = ik_pose_t.translation - current_pose.translation;
 
     // Orientation
-//    Vector3T<T> p1(T(orientation_weight_), T(0.0), T(0.0));
-//    Vector3T<T> p2(T(0.0), T(orientation_weight_), T(0.0));
-//
-//    Vector3T<T> p1_current = current_pose.rotation * p1;
-//    Vector3T<T> p1_target = ik_pose_t.rotation * p1;
-//
-//    Vector3T<T> p2_current = current_pose.rotation * p2;
-//    Vector3T<T> p2_target = ik_pose_t.rotation * p2;
-//
-//    Vector3T<T> p1_diff = p1_current - p1_target;
-//    Vector3T<T> p2_diff = p2_current - p2_target;
-
     Vector3T<T> ori_diff;
     for (unsigned int i = 0; i < 3; ++i) {
       Vector3T<T> a = Vector3T<T>::Zero();
@@ -81,12 +69,6 @@ struct PoseError {
       Vector3T<T> target_a = ik_pose_t.rotation * a;
       ori_diff(i) = T(1.0) - current_a.dot(target_a);
     }
-
-    Vector3T<T> ax = Vector3T<T>::UnitX();
-    Vector3T<T> ay = Vector3T<T>::UnitX();
-    Vector3T<T> az = Vector3T<T>::UnitX();
-
-//    ROS_INFO_STREAM("Position diff: " << translation_diff(0) << ", " << translation_diff(1) << ", " << translation_diff(2));
 
     for (unsigned int i = 0; i < 3; i++) {
       residuals[i] = translation_diff(i);
