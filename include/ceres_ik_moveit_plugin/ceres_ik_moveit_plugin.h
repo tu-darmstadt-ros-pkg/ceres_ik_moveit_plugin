@@ -130,6 +130,8 @@ private:
   int max_iterations_;
   double orientation_weight_;
   bool joint_angle_regularization_;
+  double null_space_weight_;
+  std::vector<double> default_joint_state_;
   std::vector<double> regularization_factors_;
   double goal_tolerance_;
 

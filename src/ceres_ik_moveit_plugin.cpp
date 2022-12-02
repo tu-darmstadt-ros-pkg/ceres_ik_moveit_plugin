@@ -86,6 +86,13 @@ bool CeresIkMoveitPlugin::initialize(const moveit::core::RobotModel &robot_model
   pnh.param("joint_angle_regularization", joint_angle_regularization_, false);
   pnh.param("goal_tolerance", goal_tolerance_, 0.01);
 
+  pnh.param("null_space_weight", null_space_weight_, 0.0);
+  pnh.param<std::vector<double>>("default_joint_state", default_joint_state_, std::vector<double>(num_actuated_joints_, 0));
+  if (default_joint_state_.size() != num_actuated_joints_) {
+    ROS_ERROR_STREAM_NAMED("CeresIK", "Size of default joint state doesn't match number of actuated joints");
+    return false;
+  }
+
   active_ = true;
   return true;
 }
@@ -175,6 +182,13 @@ bool CeresIkMoveitPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose,
     ROS_DEBUG_STREAM("Adding joint angle regularisation");
     ceres::CostFunction* regularization_function = JointAngleRegularization::Create(ik_seed_state, regularization_factors_);
     problem.AddResidualBlock(regularization_function, nullptr, &solution[0]);
+  }
+
+  if (null_space_weight_ != 0) {
+    ROS_INFO_STREAM("Adding null space term");
+    ceres::CostFunction* null_space_term = JointAngleRegularization::Create(
+        default_joint_state_, std::vector<double>(num_actuated_joints_, null_space_weight_));
+    problem.AddResidualBlock(null_space_term, nullptr, &solution[0]);
   }
 
   // set joint angle limits
